@@ -38,6 +38,9 @@ public:
     /// @brief Simulation function (see @ref Simulator for parameters).
     Simulator simulator;
     
+    /// @brief Extract the diffusion tensor from the decision vector.
+    static Eigen::Matrix3d get_diffusion_tensor(pagmo::vector_double const & dv);
+    
     /**
      * @brief Evaluate the fitness of a decision vector with respect to the
      * acquired and simulated signals.
@@ -49,7 +52,7 @@ public:
 
 private:
     /// @brief Problem variables.
-    enum class Variables
+    enum Variables: std::size_t
     {
         /// @brief First parameter of radius vector, @f$u \in [0,1]@f$
         u=0, 
@@ -67,7 +70,6 @@ private:
         /// @brief Number of variables
         size
     };
-
 };
 
 #endif // _b62f1e90_b315_4d41_940c_152159958f9e
