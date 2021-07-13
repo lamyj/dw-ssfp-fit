@@ -30,11 +30,8 @@ double freed(
     auto const G_tau = acquisition.G_diffusion * acquisition.tau_diffusion;
     
     // Diffusion rate, at the end of the first paragraph of p. 4251
-    // NOTE shouldn't this be γ/(2π)?
-    auto const R_D = (
-            // FIXME: compute ADC
-            D(0,0) * std::pow(sycomore::gamma.magnitude * G_tau, 2)
-        );
+    double const ADC = acquisition.direction.transpose() * D * acquisition.direction;
+    auto const R_D = ADC * std::pow(sycomore::gamma.magnitude * G_tau, 2);
     
     // Equation 5, using definition of R_D
     auto const E1 = [&](int p) { 
