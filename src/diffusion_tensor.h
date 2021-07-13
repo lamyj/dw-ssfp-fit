@@ -6,11 +6,14 @@
 
 /**
  * @brief Uniform density parameterization of a sphere from parameters in [0,1] 
- * to @f$\theta@f$ @f$\phi@f$.
+ * to @f$(\theta, \phi)@f$.
  *
  * Since the area element is @f$\sin \phi\ d\theta\ d\phi@f$, uniform sampling
  * of @f$\theta@f$ and @f$\phi@f$ will yield a higher density around the poles
  * of the sphere (i.e. @f$\phi=0@f$ and @f$\phi=\pi@f$)
+ *
+ * @param u First parameter, mapped to @f$\theta@f$
+ * @param v Second parameter, mapped to @f$\phi@f$
  */
 std::pair<double, double> uniform_to_spherical(double u, double v);
 
@@ -50,6 +53,15 @@ Eigen::Matrix3d build_diffusion_tensor(
  * See @ref build_diffusion_tensor(double, double, double, double, double, double)
  * "other definition" for details.
  * 
+ * @param theta azimuthal angle in the @f$(x,y)@f$ plane from the @f$x@f$ axis 
+ *   (@f$0 \le \theta \le 2\pi@f$)
+ * @param phi polar angle from the positive @f$z@f$ axis, also known as 
+ *   colatitude or inclination angle (@f$0 \le \phi \le \pi@f$)
+ * @param psi rotation angle around the radius vector defined by @f$\theta@f$ 
+ *   and @f$\phi@f$ (@f$-\pi \le \psi \le \pi@f$)
+ * @param lambda1 largest eigenvalue
+ * @param lambda2 second eigenvalue
+ * @param lambda3 smallest eigenvalue
  * @param D Array of size 9, managed by caller
  */
 void build_diffusion_tensor(

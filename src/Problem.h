@@ -29,10 +29,10 @@ public:
     /// @brief Magnitude of the signal for each acquisition.
     std::vector<double> signals;
     
-    /// @brief @f$T_1@f$, in seconds.
+    /// @brief Species @f$T_1@f$, in s.
     double T1;
     
-    /// @brief @f$T_2@f$, in seconds.
+    /// @brief Species @f$T_2@f$, in s.
     double T2;
     
     /// @brief Simulation function (see @ref Simulator for parameters).
