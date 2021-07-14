@@ -18,7 +18,7 @@ pybind11::array_t<double> fit(
     pybind11::sequence acquisitions_py, unsigned int reference, 
     pybind11::array_t<double> signals_py,
     sycomore::Quantity const & T1, sycomore::Quantity const & T2,
-    unsigned int generations, unsigned int population, unsigned int jobs,
+    unsigned int population, unsigned int generations, unsigned int jobs,
     unsigned int verbosity)
 {
     using namespace pybind11;
