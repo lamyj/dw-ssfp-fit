@@ -9,12 +9,14 @@ find_package(Doxygen)
 find_package(Eigen3 REQUIRED)
 find_package(Pagmo REQUIRED)
 find_package(pybind11 REQUIRED)
+find_package(sycomore REQUIRED)
 
 file(GLOB_RECURSE header_files "src/*.h")
 file(GLOB_RECURSE source_files "src/*.cpp")
 
 pybind11_add_module(dw_ssfp_fit_pybind SHARED ${source_files} ${header_files})
-target_link_libraries(dw_ssfp_fit_pybind PUBLIC Eigen3::Eigen Pagmo::pagmo)
+target_link_libraries(
+    dw_ssfp_fit_pybind PUBLIC Eigen3::Eigen Pagmo::pagmo sycomore::libsycomore)
 set_target_properties(dw_ssfp_fit_pybind PROPERTIES OUTPUT_NAME _dw_ssfp_fit)
 
 file(GLOB_RECURSE python_files "src/*.py")
