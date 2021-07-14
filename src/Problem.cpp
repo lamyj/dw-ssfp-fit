@@ -59,9 +59,10 @@ Problem
     
     minimum[Variables::psi] = -M_PI; maximum[Variables::psi] = +M_PI;
     
-    minimum[Variables::lambda1] = 1e-3; maximum[Variables::lambda1] = 1e+3;
-    minimum[Variables::lambda2] = 1e-3; maximum[Variables::lambda2] = 1e+3;
-    minimum[Variables::lambda3] = 1e-3; maximum[Variables::lambda3] = 1e+3;
+    // Eigenvalues between 1 µm²/s and 10000 µm²/s
+    minimum[Variables::lambda1] = 1 * 1e-12; maximum[Variables::lambda1] = 1e+4 * 1e-12;
+    minimum[Variables::lambda2] = 1 * 1e-12; maximum[Variables::lambda2] = 1e+4 * 1e-12;
+    minimum[Variables::lambda3] = 1 * 1e-12; maximum[Variables::lambda3] = 1e+4 * 1e-12;
     
     return {minimum, maximum};
 }
