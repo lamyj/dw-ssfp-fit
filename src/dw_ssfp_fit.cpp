@@ -80,11 +80,11 @@ pybind11::array_t<double> fit(
     return D_array;
 }
 
-PYBIND11_MODULE(dw_ssfp_fit, dw_ssfp_fit)
+PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
 {
     using namespace pybind11;
     
-    dw_ssfp_fit.def(
+    _dw_ssfp_fit.def(
         "fit", &fit, 
         arg("scheme"), arg("reference"), arg("signals"), arg("T1"), arg("T2"),
         arg("population")=100, arg("generations")=100, arg("jobs")=1,
