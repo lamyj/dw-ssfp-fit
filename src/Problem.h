@@ -38,6 +38,9 @@ public:
     /// @brief Simulation function (see @ref Simulator for parameters).
     Simulator simulator;
     
+    /// @brief Rescale a dv from [-1, 1] to its true range.
+    static pagmo::vector_double get_true_dv(pagmo::vector_double const & scaled_dv);
+    
     /// @brief Extract the diffusion tensor from the decision vector.
     static Eigen::Matrix3d get_diffusion_tensor(pagmo::vector_double const & dv);
     
@@ -70,6 +73,8 @@ private:
         /// @brief Number of variables
         size
     };
+    
+    static std::pair<pagmo::vector_double, pagmo::vector_double> const _true_bounds;
 };
 
 #endif // _b62f1e90_b315_4d41_940c_152159958f9e

@@ -2,9 +2,28 @@
 
 #include <functional>
 #include <utility>
+#include <vector>
 #include <pagmo/types.hpp>
 
 #include "diffusion_tensor.h"
+
+#include <iostream>
+
+pagmo::vector_double
+Problem
+::get_true_dv(pagmo::vector_double const & scaled_dv)
+{
+    auto true_dv = scaled_dv;
+    for(std::size_t i=0, end=true_dv.size(); i!=end; ++i)
+    {
+        auto const & true_min = Problem::_true_bounds.first[i];
+        auto const & true_max = Problem::_true_bounds.second[i];
+        
+        // All elements in scaled_dv are in [-1,1]: rescale to true interval.
+        true_dv[i] = (scaled_dv[i] - -1)/2 * (true_max-true_min) + true_min;
+    }
+    return true_dv;
+}
 
 Eigen::Matrix3d
 Problem
@@ -19,9 +38,10 @@ Problem
 
 pagmo::vector_double
 Problem
-::fitness(pagmo::vector_double const & dv) const
+::fitness(pagmo::vector_double const & scaled_dv) const
 {
-    auto const D = Problem::get_diffusion_tensor(dv);
+    auto const true_dv = get_true_dv(scaled_dv);
+    auto const D = Problem::get_diffusion_tensor(true_dv);
     
     auto const & non_dw_acquisition = this->scheme[this->non_dw_index];
     auto const non_dw_signal = this->signals[this->non_dw_index];
@@ -50,18 +70,15 @@ std::pair<pagmo::vector_double, pagmo::vector_double>
 Problem
 ::get_bounds() const
 {
-    pagmo::vector_double minimum(Variables::size);
-    pagmo::vector_double maximum(Variables::size);
-    
-    minimum[Variables::u] = 0; maximum[Variables::u] = 1;
-    minimum[Variables::v] = 0; maximum[Variables::v] = 1;
-    
-    minimum[Variables::psi] = -M_PI; maximum[Variables::psi] = +M_PI;
-    
-    // Eigenvalues between 1 µm²/s and 10000 µm²/s
-    minimum[Variables::lambda1] = 1 * 1e-12; maximum[Variables::lambda1] = 1e+4 * 1e-12;
-    minimum[Variables::lambda2] = 1 * 1e-12; maximum[Variables::lambda2] = 1e+4 * 1e-12;
-    minimum[Variables::lambda3] = 1 * 1e-12; maximum[Variables::lambda3] = 1e+4 * 1e-12;
+    pagmo::vector_double minimum(Variables::size, -1);
+    pagmo::vector_double maximum(Variables::size, +1);
     
     return {minimum, maximum};
 }
+
+
+std::pair<pagmo::vector_double, pagmo::vector_double> const
+Problem
+::_true_bounds{
+    {0, 0, -M_PI, 1  *1e-12, 1  *1e-12, 1  *1e-12},
+    {1, 1, +M_PI, 1e4*1e-12, 1e4*1e-12, 1e4*1e-12}};

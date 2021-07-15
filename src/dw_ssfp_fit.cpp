@@ -77,9 +77,10 @@ pybind11::array_t<double> fit(
     for(auto && island: archipelago)
     {
         auto const population = island.get_population();
-        for(auto && dv: population.get_x())
+        for(auto && scaled_dv: population.get_x())
         {
-            auto const D = Problem::get_diffusion_tensor(dv);
+            auto const true_dv = Problem::get_true_dv(scaled_dv);
+            auto const D = Problem::get_diffusion_tensor(true_dv);
             std::copy(D.data(), D.data()+D.size(), D_array.mutable_data(index));
             
             ++index;
