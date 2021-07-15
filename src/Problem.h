@@ -21,10 +21,10 @@ public:
             Acquisition const &, Acquisition const &);
     
     /// @brief Parameters of the set of acquisitions to fit.
-    std::vector<Acquisition> acquisitions;
+    std::vector<Acquisition> scheme;
     
     /// @brief Index of the non-diffusion-weighted acquisition.
-    std::size_t reference_acquisition_index;
+    std::size_t non_dw_index;
     
     /// @brief Magnitude of the signal for each acquisition.
     std::vector<double> signals;

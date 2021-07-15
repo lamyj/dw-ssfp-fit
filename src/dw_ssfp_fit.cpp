@@ -15,7 +15,7 @@
 #include "Problem.h"
 
 pybind11::array_t<double> fit(
-    pybind11::sequence acquisitions_py, unsigned int reference, 
+    pybind11::sequence scheme_py, unsigned int non_dw, 
     pybind11::array_t<double> signals_py,
     sycomore::Quantity const & T1, sycomore::Quantity const & T2,
     unsigned int population, unsigned int generations, unsigned int jobs,
@@ -28,10 +28,10 @@ pybind11::array_t<double> fit(
     auto const unit_cast = [](auto const & object, auto const unit){ 
         return object.template cast<Quantity>().convert_to(unit); };
     
-    std::vector<Acquisition> acquisitions;
-    for(auto && item: acquisitions_py)
+    std::vector<Acquisition> scheme;
+    for(auto && item: scheme_py)
     {
-        auto & acquisition = acquisitions.emplace_back();
+        auto & acquisition = scheme.emplace_back();
         acquisition.alpha = unit_cast(item["alpha"], rad);
         acquisition.G_diffusion = unit_cast(item["G_diffusion"], T/m);
         acquisition.tau_diffusion = unit_cast(item["tau_diffusion"], s);
@@ -44,12 +44,21 @@ pybind11::array_t<double> fit(
         acquisition.G_max = unit_cast(item["G_max"], T/m);
     }
     
-    std::vector<double> signals(
-        signals_py.data(), signals_py.data()+signals_py.size());
+    if(signals_py.ndim() != 1 || signals_py.shape()[0] != scheme.size())
+    {
+        throw std::runtime_error(
+            "Scheme and signals size mismatch: "
+            + std::to_string(scheme.size()) + " != " 
+            + std::to_string(signals_py.shape()[0]));
+    }
+    std::vector<double> signals(signals_py.shape()[0]);
+    for(std::size_t i=0, end=signals.size(); i!=end; ++i)
+    {
+        signals[i] = signals_py.at(i);
+    }
     
     Problem problem{
-        acquisitions, reference, signals, T1.convert_to(s), T2.convert_to(s), 
-        freed};
+        scheme, non_dw, signals, T1.convert_to(s), T2.convert_to(s), freed};
     
     pagmo::algorithm algorithm{pagmo::de1220{generations}};
     algorithm.set_seed(314159265);
@@ -86,7 +95,7 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
     
     _dw_ssfp_fit.def(
         "fit", &fit, 
-        arg("scheme"), arg("reference"), arg("signals"), arg("T1"), arg("T2"),
+        arg("scheme"), arg("non_dw"), arg("signals"), arg("T1"), arg("T2"),
         arg("population")=100, arg("generations")=100, arg("jobs")=1,
         arg("verbosity")=0);
 }
