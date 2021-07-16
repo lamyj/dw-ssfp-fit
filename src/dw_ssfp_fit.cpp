@@ -16,8 +16,7 @@
 
 pybind11::array_t<double> fit(
     pybind11::sequence scheme_py, unsigned int non_dw, 
-    pybind11::array_t<double> signals_py,
-    sycomore::Quantity const & T1, sycomore::Quantity const & T2,
+    pybind11::array_t<double> signals_py, double T1, double T2,
     unsigned int population, unsigned int generations, unsigned int jobs,
     unsigned int verbosity)
 {
@@ -25,23 +24,20 @@ pybind11::array_t<double> fit(
     using namespace sycomore;
     using namespace sycomore::units;
     
-    auto const unit_cast = [](auto const & object, auto const unit){ 
-        return object.template cast<Quantity>().convert_to(unit); };
-    
     std::vector<Acquisition> scheme;
     for(auto && item: scheme_py)
     {
         auto & acquisition = scheme.emplace_back();
-        acquisition.alpha = unit_cast(item["alpha"], rad);
-        acquisition.G_diffusion = unit_cast(item["G_diffusion"], T/m);
-        acquisition.tau_diffusion = unit_cast(item["tau_diffusion"], s);
+        acquisition.alpha = item["alpha"].cast<double>();
+        acquisition.G_diffusion = item["G_diffusion"].cast<double>();
+        acquisition.tau_diffusion = item["tau_diffusion"].cast<double>();
         acquisition.direction = Eigen::Map<Eigen::VectorXd>{
             item["direction"].cast<array_t<double>>().mutable_data(), 3};
-        acquisition.TR = unit_cast(item["TR"], s);
-        acquisition.TR = unit_cast(item["TE"], s);
-        acquisition.pixel_bandwidth = unit_cast(item["pixel_bandwidth"], Hz);
-        acquisition.resolution = unit_cast(item["resolution"], m);
-        acquisition.G_max = unit_cast(item["G_max"], T/m);
+        acquisition.TR = item["TR"].cast<double>();
+        acquisition.TR = item["TE"].cast<double>();
+        acquisition.pixel_bandwidth = item["pixel_bandwidth"].cast<double>();
+        acquisition.resolution = item["resolution"].cast<double>();
+        acquisition.G_max = item["G_max"].cast<double>();
     }
     
     if(signals_py.ndim() != 1 || signals_py.shape()[0] != scheme.size())
@@ -57,8 +53,7 @@ pybind11::array_t<double> fit(
         signals[i] = signals_py.at(i);
     }
     
-    Problem problem{
-        scheme, non_dw, signals, T1.convert_to(s), T2.convert_to(s), freed};
+    Problem problem{scheme, non_dw, signals, T1, T2, freed};
     
     pagmo::algorithm algorithm{pagmo::de1220{generations}};
     algorithm.set_seed(314159265);
