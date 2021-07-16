@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <utility>
+#include <vector>
 #include <pagmo/types.hpp>
 
 #include "Acquisition.h"
@@ -13,12 +14,10 @@ class Problem
 public:
     /**
      * @brief Callable simulating the magnitude of the DW-SSFP signal from
-     * @f$T_1@f$, @f$T_2@f$, @f$D@f$, a diffusion-weighted acquisition, and a
-     * non-diffusion-weighted acquisition.
+     * @f$T_1@f$, @f$T_2@f$, @f$D@f$, and acquisition parameters.
      */
     using Simulator = double(*)(
-            double, double, Eigen::Matrix3d const &, 
-            Acquisition const &, Acquisition const &);
+            double, double, Eigen::Matrix3d const &, Acquisition const &);
     
     /// @brief Parameters of the set of acquisitions to fit.
     std::vector<Acquisition> scheme;

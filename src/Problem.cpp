@@ -46,8 +46,10 @@ Problem
     auto const & non_dw_acquisition = this->scheme[this->non_dw_index];
     auto const non_dw_signal = this->signals[this->non_dw_index];
     
+    auto const simulated_signal_non_dw = this->simulator(
+        this->T1, this->T2, D, non_dw_acquisition);
+    
     double residuals = 0;
-    double relative_residuals = 0;
     for(std::size_t i=0, end=this->scheme.size(); i!=end; ++i)
     {
         if(i == this->non_dw_index)
@@ -58,9 +60,14 @@ Problem
         auto const & acquisition = this->scheme[i];
         auto measured_signal = this->signals[i]/non_dw_signal;
         
-        auto const simulated_signal = this->simulator(
-            this->T1, this->T2, D, acquisition, non_dw_acquisition);
-        residuals += std::pow(simulated_signal-measured_signal, 2);
+        auto const simulated_signal_dw = this->simulator(
+            this->T1, this->T2, D, acquisition);
+        
+        auto const simulated_signal = simulated_signal_dw/simulated_signal_non_dw;
+        
+        // The signal is normalized and < 1: don't use square norm, but absolute
+        // value to avoid too low residuals.
+        residuals += std::abs(simulated_signal-measured_signal);
     }
     
     return {residuals};
