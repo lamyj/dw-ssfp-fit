@@ -36,7 +36,8 @@ pybind11::array_t<double>
 fit_wrapper(
     std::vector<Acquisition> const & scheme, unsigned int non_dw, 
     pybind11::array_t<double> DW_SSFP, pybind11::array_t<double> T1_map,
-    pybind11::array_t<double> T2_map, boost::mpi::communicator communicator,
+    pybind11::array_t<double> T2_map, pybind11::array_t<double> B1_map,
+    boost::mpi::communicator communicator,
     unsigned int population, unsigned int generations)
 {
     std::size_t blocks_count;
@@ -53,6 +54,10 @@ fit_wrapper(
         {
             throw std::runtime_error("DW_SSFP and T2_map dimensions don't match");
         }
+        if(DW_SSFP.ndim() != 1+B1_map.ndim())
+        {
+            throw std::runtime_error("DW_SSFP and B1_map dimensions don't match");
+        }
         
         for(int i=0, end=T1_map.ndim(); i!=end; ++i)
         {
@@ -63,6 +68,10 @@ fit_wrapper(
             if(DW_SSFP.shape(i) != T2_map.shape(i))
             {
                 throw std::runtime_error("DW_SSFP and T2_map shapes don't match");
+            }
+            if(DW_SSFP.shape(i) != B1_map.shape(i))
+            {
+                throw std::runtime_error("DW_SSFP and B1_map shapes don't match");
             }
         }
         
@@ -77,6 +86,10 @@ fit_wrapper(
         if(!(T2_map.flags() & pybind11::array::c_style))
         {
             throw std::runtime_error("T2_map is not contiguous");
+        }
+        if(!(B1_map.flags() & pybind11::array::c_style))
+        {
+            throw std::runtime_error("B1_map is not contiguous");
         }
         
         block_size = DW_SSFP.shape(DW_SSFP.ndim()-1);
@@ -95,8 +108,8 @@ fit_wrapper(
     
     fit(
         scheme, non_dw, DW_SSFP.data(), T1_map.data(), T2_map.data(),
-        communicator, population, generations, blocks_count, block_size, 
-        result.mutable_data());
+        B1_map.data(), communicator, population, generations, blocks_count, 
+        block_size, result.mutable_data());
     
     return result;
 }
@@ -137,6 +150,6 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
     _dw_ssfp_fit.def(
         "fit", &fit_wrapper, 
         arg("scheme"), arg("non_dw"), arg("DW_SSFP"), arg("T1_map"), 
-        arg("T2_map"), arg("communicator"), arg("population")=100, 
-        arg("generations")=100);
+        arg("T2_map"), arg("B1_map"), arg("communicator"),
+        arg("population")=100, arg("generations")=100);
 }

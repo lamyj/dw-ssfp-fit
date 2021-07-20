@@ -17,7 +17,7 @@ public:
      * @f$T_1@f$, @f$T_2@f$, @f$D@f$, and acquisition parameters.
      */
     using Simulator = double(*)(
-            double, double, Eigen::Matrix3d const &, Acquisition const &);
+        double, double, double, Eigen::Matrix3d const &, Acquisition const &);
     
     /// @brief Parameters of the set of acquisitions to fit.
     std::vector<Acquisition> scheme;
@@ -33,6 +33,9 @@ public:
     
     /// @brief Species @f$T_2@f$, in s.
     double T2;
+    
+    /// @brief Relative B1, unitless.
+    double B1;
     
     /// @brief Simulation function (see @ref Simulator for parameters).
     Simulator simulator;

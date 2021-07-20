@@ -21,7 +21,7 @@
  *   @f$G_{\text{diffusion}}@f$, @f$\tau_{\text{diffusion}}@f$, direction)
  */
 double freed(
-    double T1, double T2, Eigen::Matrix3d const & D, 
+    double T1, double T2, double B1, Eigen::Matrix3d const & D, 
     Acquisition const & acquisition);
 
 #endif // _96a3fddd_ce2d_434d_b798_2ee72aba3278

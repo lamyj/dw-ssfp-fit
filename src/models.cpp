@@ -6,13 +6,12 @@
 
 #include "Acquisition.h"
 
-
 double freed(
-    double T1, double T2, Eigen::Matrix3d const & D, 
+    double T1, double T2, double B1, Eigen::Matrix3d const & D, 
     Acquisition const & acquisition)
 {
-    auto const cos_alpha = std::cos(acquisition.alpha);
-    auto const sin_alpha = std::sin(acquisition.alpha);
+    auto const cos_alpha = std::cos(B1*acquisition.alpha);
+    auto const sin_alpha = std::sin(B1*acquisition.alpha);
     
     auto const truncation_level = 6;
     

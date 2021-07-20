@@ -29,24 +29,19 @@ diffusion_vectors = list(root.glob("DiffusionVectors*txt"))
 # FIXME? realign SPGR_PDw and SPGR_T1w
 
 B1_map = qMRI_toolbox.b1_map.XFL(XFL_flip_angle, "B1_map.nii.gz")
-
 B1_map_in_SPGR_MT = spire.ants.ApplyTransforms(
     B1_map.targets[0], (SPGR_T1w["M"], 0), [], "B1_map_in_SPGR_MT.nii.gz")
-
 B1_map_in_bSSFP_T2 = spire.ants.ApplyTransforms(
     B1_map.targets[0], bSSFP_T2[0], [], "B1_map_in_bSSFP_T2.nii.gz")
+B1_map_in_DW_SSFP = spire.ants.ApplyTransforms(
+    B1_map.targets[0], (DW_SSFP[0], 0), [], "B1_map_in_DW_SSFP.nii.gz")
 
 T1_map = qMRI_toolbox.t1_map.VFA(
     [x["M"] for x in [SPGR_PDw, SPGR_T1w]], B1_map_in_SPGR_MT.targets[0], 
     "T1_map.nii.gz")
-
 T1_map_in_bSSFP_T2 = spire.ants.ApplyTransforms(
     T1_map.targets[0], bSSFP_T2[0], [], "T1_map_in_bSSFP_T2.nii.gz")
 
-# bSSFP_T2_in_MPRAGE = spire.ants.Registration(
-#     brain.MPRAGE_N4.targets[0], paths.bSSFP_T2[0], "affine", 
-#     "bSSFP_T2_in_MPRAGE")
-# 
 T2_map = qMRI_toolbox.t2_map.bSSFP(
     bSSFP_T2, B1_map_in_bSSFP_T2.targets[0], T1_map_in_bSSFP_T2.targets[0],
     "T2_map.nii.gz")

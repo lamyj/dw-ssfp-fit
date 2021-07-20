@@ -15,9 +15,9 @@
 void fit(
     std::vector<Acquisition> const & scheme, unsigned int non_dw, 
     double const * DW_SSFP, double const * T1_map, double const * T2_map,
-    boost::mpi::communicator communicator, unsigned int population, 
-    unsigned int generations, std::size_t blocks_count, int block_size,
-    double * result)
+    double const * B1_map, boost::mpi::communicator communicator,
+    unsigned int population, unsigned int generations, std::size_t blocks_count,
+    int block_size, double * result)
 {
     // Dispatch the chunks to the workers. 
     auto DW_SSFP_subset = scatter_blocks(
@@ -26,6 +26,8 @@ void fit(
         communicator, T1_map, blocks_count, block_size);
     auto T2_subset = scatter_blocks(
         communicator, T2_map, blocks_count, block_size);
+    auto B1_subset = scatter_blocks(
+        communicator, B1_map, blocks_count, block_size);
     
     auto const subset_blocks_count = DW_SSFP_subset.size()/block_size;
     
@@ -39,7 +41,8 @@ void fit(
             DW_SSFP_subset.data()+block_size*i, 
             DW_SSFP_subset.data()+block_size*(i+1));
         Problem problem{
-            scheme, non_dw, signals, T1_subset[i], T2_subset[i], freed};
+            scheme, non_dw, signals, T1_subset[i], T2_subset[i], B1_subset[i],
+            freed};
         fit(problem, algorithm, population, generations, D.data()+9*population*i);
     }
     

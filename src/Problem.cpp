@@ -47,7 +47,7 @@ Problem
     auto const non_dw_signal = this->signals[this->non_dw_index];
     
     auto const simulated_signal_non_dw = this->simulator(
-        this->T1, this->T2, D, non_dw_acquisition);
+        this->T1, this->T2, this->B1, D, non_dw_acquisition);
     
     double residuals = 0;
     for(std::size_t i=0, end=this->scheme.size(); i!=end; ++i)
@@ -61,7 +61,7 @@ Problem
         auto measured_signal = this->signals[i]/non_dw_signal;
         
         auto const simulated_signal_dw = this->simulator(
-            this->T1, this->T2, D, acquisition);
+            this->T1, this->T2, this->B1, D, acquisition);
         
         auto const simulated_signal = simulated_signal_dw/simulated_signal_non_dw;
         

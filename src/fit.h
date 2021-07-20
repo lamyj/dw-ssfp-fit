@@ -16,9 +16,9 @@
 void fit(
     std::vector<Acquisition> const & scheme, unsigned int non_dw, 
     double const * DW_SSFP, double const * T1_map, double const * T2_map,
-    boost::mpi::communicator communicator, unsigned int population, 
-    unsigned int generations, std::size_t blocks_count, int block_size,
-    double * result);
+    double const * B1_map, boost::mpi::communicator communicator,
+    unsigned int population, unsigned int generations, std::size_t blocks_count,
+    int block_size, double * result);
 
 /**
  * @brief Fit a single voxel, store the result in user-provided array.
