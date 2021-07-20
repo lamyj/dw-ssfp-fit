@@ -1,5 +1,11 @@
 #include <vector>
 
+#define FORCE_IMPORT_ARRAY
+
+#include <boost/mpi/collectives.hpp>
+#include <boost/mpi/communicator.hpp>
+#include <boost/mpi/environment.hpp>
+#include <mpi4py/mpi4py.h>
 #include <pagmo/algorithm.hpp>
 #include <pagmo/algorithms/de1220.hpp>
 #include <pagmo/archipelago.hpp>
@@ -8,6 +14,8 @@
 #include <pybind11/pybind11.h>
 #include <sycomore/Quantity.h>
 #include <sycomore/units.h>
+#include <xtensor/xaxis_slice_iterator.hpp>
+#include <xtensor-python/pyarray.hpp>
 
 #include "Acquisition.h"
 #include "diffusion_tensor.h"
@@ -81,6 +89,27 @@ pybind11::array_t<double> fit(
             ++index;
         }
     }
+namespace pybind11 { namespace detail {
+
+template<>
+struct type_caster<boost::mpi::communicator> {
+public:
+    PYBIND11_TYPE_CASTER(boost::mpi::communicator, _("communicator"));
+    bool load(handle src, bool)
+    {
+        auto communicator_pointer = PyMPIComm_Get(src.ptr());
+        if(!communicator_pointer)
+        {
+            return false;
+        }
+        value = boost::mpi::communicator(
+            *communicator_pointer, boost::mpi::comm_attach);
+        return true;
+    }
+};
+
+} }
+
     
     return D_array;
 }
@@ -88,6 +117,13 @@ pybind11::array_t<double> fit(
 PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
 {
     using namespace pybind11;
+    
+    if(import_mpi4py() < 0)
+    {
+        throw pybind11::error_already_set();
+    }
+    
+    xt::import_numpy();
     
     class_<Acquisition>(_dw_ssfp_fit, "Acquisition")
         .def(init(

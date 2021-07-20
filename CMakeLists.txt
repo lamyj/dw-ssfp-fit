@@ -5,18 +5,31 @@ project("dw-ssfp-fit")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(Boost REQUIRED COMPONENTS mpi)
 find_package(Doxygen)
 find_package(Eigen3 REQUIRED)
+find_package(MPI REQUIRED)
 find_package(Pagmo REQUIRED)
 find_package(pybind11 REQUIRED)
+find_package(Python3 3.7 COMPONENTS Interpreter NumPy REQUIRED)
 find_package(sycomore REQUIRED)
+
+execute_process(
+    COMMAND ${PYTHON_EXECUTABLE}
+    -c "import mpi4py; print(mpi4py.get_include())"
+    OUTPUT_VARIABLE MPI4PY_INCLUDES
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 file(GLOB_RECURSE header_files "src/*.h")
 file(GLOB_RECURSE source_files "src/*.cpp")
 
 pybind11_add_module(dw_ssfp_fit_pybind SHARED ${source_files} ${header_files})
+target_include_directories(dw_ssfp_fit_pybind PUBLIC ${MPI4PY_INCLUDES})
 target_link_libraries(
-    dw_ssfp_fit_pybind PUBLIC Eigen3::Eigen Pagmo::pagmo sycomore::libsycomore)
+    dw_ssfp_fit_pybind 
+    PUBLIC 
+        Boost::mpi Eigen3::Eigen MPI::MPI_CXX Pagmo::pagmo Python3::NumPy
+        sycomore::libsycomore)
 set_target_properties(dw_ssfp_fit_pybind PROPERTIES OUTPUT_NAME _dw_ssfp_fit)
 
 file(GLOB_RECURSE python_files "src/*.py")
