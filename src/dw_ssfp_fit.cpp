@@ -55,8 +55,8 @@ pybind11::array_t<double> fit(
     
     Problem problem{scheme, non_dw, signals, T1, T2, freed};
     
+    // NOTE: data/model do not allow to easily specify ftol/xtol
     pagmo::algorithm algorithm{pagmo::de1220{generations}};
-    algorithm.set_seed(314159265);
     algorithm.set_verbosity(verbosity);
     
     pagmo::archipelago archipelago{jobs, algorithm, problem, population};
@@ -88,6 +88,30 @@ pybind11::array_t<double> fit(
 PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
 {
     using namespace pybind11;
+    
+    class_<Acquisition>(_dw_ssfp_fit, "Acquisition")
+        .def(init(
+            [](
+                double alpha, double G_diffusion, double tau_diffusion, 
+                Eigen::Vector3d direction, double TE, double TR, 
+                double pixel_bandwidth, double resolution, double G_max) 
+            { 
+                return Acquisition{
+                    alpha, G_diffusion, tau_diffusion, direction, TE, TR,
+                    pixel_bandwidth, resolution, G_max};
+            }),
+            arg("alpha")=0, arg("G_diffusion")=0, arg("tau_diffusion")=0, 
+            arg("direction")=Eigen::Vector3d{1,0,0}, arg("TE")=0, arg("TR")=0,
+            arg("pixel_bandwidth")=0, arg("resolution")=0, arg("G_max")=0)
+        .def_readwrite("alpha", &Acquisition::alpha)
+        .def_readwrite("G_diffusion", &Acquisition::G_diffusion)
+        .def_readwrite("tau_diffusion", &Acquisition::tau_diffusion)
+        .def_readwrite("direction", &Acquisition::direction)
+        .def_readwrite("TE", &Acquisition::TE)
+        .def_readwrite("TR", &Acquisition::TR)
+        .def_readwrite("pixel_bandwidth", &Acquisition::pixel_bandwidth)
+        .def_readwrite("resolution", &Acquisition::resolution)
+        .def_readwrite("G_max", &Acquisition::G_max);
     
     _dw_ssfp_fit.def(
         "fit", &fit, 

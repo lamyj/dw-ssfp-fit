@@ -40,7 +40,7 @@ pagmo::vector_double
 Problem
 ::fitness(pagmo::vector_double const & scaled_dv) const
 {
-    auto const true_dv = get_true_dv(scaled_dv);
+    auto const true_dv = Problem::get_true_dv(scaled_dv);
     auto const D = Problem::get_diffusion_tensor(true_dv);
     
     auto const & non_dw_acquisition = this->scheme[this->non_dw_index];
@@ -70,7 +70,8 @@ Problem
         residuals += std::abs(simulated_signal-measured_signal);
     }
     
-    return {residuals};
+    // Normalize by number of acquisition.
+    return {residuals/(this->scheme.size()-1)};
 }
 
 std::pair<pagmo::vector_double, pagmo::vector_double>
