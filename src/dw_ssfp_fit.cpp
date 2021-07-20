@@ -97,8 +97,8 @@ fit_wrapper(
         
         std::vector<int> shape(DW_SSFP.shape(), DW_SSFP.shape()+DW_SSFP.ndim()-1);
         shape.push_back(population);
-        shape.push_back(9);
-        
+        shape.push_back(3);
+        shape.push_back(3);
         
         result = pybind11::array_t<double>(shape);
     }
