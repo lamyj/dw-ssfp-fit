@@ -28,6 +28,9 @@ diffusion_vectors = list(root.glob("DiffusionVectors*txt"))
 
 # FIXME? realign SPGR_PDw and SPGR_T1w
 
+brain = qMRI_toolbox.segmentation.BET(
+    DW_SSFP[0], "brain.nii.gz", mask="brain_mask.nii.gz")
+
 B1_map = qMRI_toolbox.b1_map.XFL(XFL_flip_angle, "B1_map.nii.gz")
 B1_map_in_SPGR_MT = spire.ants.ApplyTransforms(
     B1_map.targets[0], (SPGR_T1w["M"], 0), [], "B1_map_in_SPGR_MT.nii.gz")

@@ -17,7 +17,7 @@ Eigen::Matrix3d build_diffusion_tensor(
     using std::sin, std::cos, std::pow;
     
     Eigen::Vector3d const axis{
-        sin(theta) * sin(phi), sin(theta) * cos(phi), cos(theta)};
+        cos(theta) * sin(phi), sin(theta) * sin(phi), cos(phi)};
     
     // Rodrigue's formula for a rotation of an angle psi around the axis.
     Eigen::Matrix3d V;
