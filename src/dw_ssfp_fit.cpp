@@ -9,7 +9,9 @@
 #include <pybind11/stl.h>
 
 #include "Acquisition.h"
+#include "diffusion_tensor.h"
 #include "fit.h"
+#include "Problem.h"
 
 namespace pybind11 { namespace detail {
 
@@ -133,20 +135,48 @@ fit_wrapper(
         individuals.mutable_data(), champions.mutable_data());
     
     return {individuals, champions};
+}
+
+pybind11::array_t<double>
+build_diffusion_tensor(pybind11::array_t<double> dv_array)
+{
+    std::vector<int> shape(dv_array.shape(), dv_array.shape()+dv_array.ndim()-1);
+    shape.push_back(3);
+    shape.push_back(3);
+    pybind11::array_t<double> D_array(shape);
     
+    auto dv_it = dv_array.data();
+    auto dv_end = dv_array.data()+dv_array.size();
+    std::vector<double> scaled_dv(6);
+    auto D_it = D_array.mutable_data();
+    Eigen::Matrix3d D;
+    
+    while(dv_it != dv_end)
+    {
+        std::copy(dv_it, dv_it+6, scaled_dv.begin());
+        dv_it += 6;
+        
+        auto const true_dv = Problem::get_true_dv(scaled_dv);
+        D = Problem::get_diffusion_tensor(true_dv);
+        
+        std::copy(D.data(), D.data()+D.size(), D_it);
+        D_it += 9;
+    }
+    
+    return D_array;
 }
 
 PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
 {
-    using namespace pybind11;
+    using namespace pybind11::literals;
     
     if(import_mpi4py() < 0)
     {
         throw pybind11::error_already_set();
     }
     
-    class_<Acquisition>(_dw_ssfp_fit, "Acquisition")
-        .def(init(
+    pybind11::class_<Acquisition>(_dw_ssfp_fit, "Acquisition")
+        .def(pybind11::init(
             [](
                 double alpha, double G_diffusion, double tau_diffusion, 
                 Eigen::Vector3d direction, double TE, double TR, 
@@ -156,9 +186,9 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
                     alpha, G_diffusion, tau_diffusion, direction, TE, TR,
                     pixel_bandwidth, resolution, G_max};
             }),
-            arg("alpha")=0, arg("G_diffusion")=0, arg("tau_diffusion")=0, 
-            arg("direction")=Eigen::Vector3d{1,0,0}, arg("TE")=0, arg("TR")=0,
-            arg("pixel_bandwidth")=0, arg("resolution")=0, arg("G_max")=0)
+            "alpha"_a=0, "G_diffusion"_a=0, "tau_diffusion"_a=0, 
+            "direction"_a=Eigen::Vector3d{1,0,0}, "TE"_a=0, "TR"_a=0,
+            "pixel_bandwidth"_a=0, "resolution"_a=0, "G_max"_a=0)
         .def_readwrite("alpha", &Acquisition::alpha)
         .def_readwrite("G_diffusion", &Acquisition::G_diffusion)
         .def_readwrite("tau_diffusion", &Acquisition::tau_diffusion)
@@ -170,8 +200,23 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
         .def_readwrite("G_max", &Acquisition::G_max);
     
     _dw_ssfp_fit.def(
+        "uniform_to_spherical", &uniform_to_spherical, "u"_a, "v"_a);
+    
+    _dw_ssfp_fit.def(
+        "build_diffusion_tensor", 
+        pybind11::overload_cast<double, double, double, double, double, double>(
+            &build_diffusion_tensor), 
+        "theta"_a, "phi"_a, "psi"_a, "lambda1"_a, "lambda2"_a, "lambda3"_a);
+    
+    _dw_ssfp_fit.def(
+        "build_diffusion_tensor", 
+        pybind11::overload_cast<pybind11::array_t<double>>(
+            &build_diffusion_tensor),
+        "array"_a);
+    
+    _dw_ssfp_fit.def(
         "fit", &fit_wrapper, 
-        arg("scheme"), arg("non_dw"), arg("DW_SSFP"), arg("T1_map"), 
-        arg("T2_map"), arg("B1_map"), arg("communicator"),
-        arg("population")=100, arg("generations")=100);
+        "scheme"_a, "non_dw"_a, "DW_SSFP"_a, "T1_map"_a, "T2_map"_a, "B1_map"_a,
+        "communicator"_a, "population"_a=100, "generations"_a=100,
+        "return_tensor"_a=true);
 }
