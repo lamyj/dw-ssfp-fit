@@ -32,17 +32,17 @@ public:
 
 } }
 
-pybind11::array_t<double>
+std::pair<pybind11::array_t<double>, pybind11::array_t<double>>
 fit_wrapper(
     std::vector<Acquisition> const & scheme, unsigned int non_dw, 
     pybind11::array_t<double> DW_SSFP, pybind11::array_t<double> T1_map,
     pybind11::array_t<double> T2_map, pybind11::array_t<double> B1_map,
     boost::mpi::communicator communicator,
-    unsigned int population, unsigned int generations)
+    unsigned int population, unsigned int generations, bool return_tensor)
 {
     std::size_t blocks_count;
     int block_size;
-    pybind11::array_t<double> result;
+    pybind11::array_t<double> individuals, champions;
     
     if(communicator.rank() == 0)
     {
@@ -97,10 +97,30 @@ fit_wrapper(
         
         std::vector<int> shape(DW_SSFP.shape(), DW_SSFP.shape()+DW_SSFP.ndim()-1);
         shape.push_back(population);
-        shape.push_back(3);
-        shape.push_back(3);
+        if(return_tensor)
+        {
+            shape.push_back(3);
+            shape.push_back(3);
+        }
+        else
+        {
+            shape.push_back(6);
+        }
         
-        result = pybind11::array_t<double>(shape);
+        individuals = pybind11::array_t<double>(shape);
+        
+        shape = std::vector<int>(DW_SSFP.shape(), DW_SSFP.shape()+DW_SSFP.ndim()-1);
+        if(return_tensor)
+        {
+            shape.push_back(3);
+            shape.push_back(3);
+        }
+        else
+        {
+            shape.push_back(6);
+        }
+        
+        champions = pybind11::array_t<double>(shape);
     }
     
     boost::mpi::broadcast(communicator, blocks_count, 0);
@@ -109,9 +129,11 @@ fit_wrapper(
     fit(
         scheme, non_dw, DW_SSFP.data(), T1_map.data(), T2_map.data(),
         B1_map.data(), communicator, population, generations, blocks_count, 
-        block_size, result.mutable_data());
+        block_size, return_tensor, 
+        individuals.mutable_data(), champions.mutable_data());
     
-    return result;
+    return {individuals, champions};
+    
 }
 
 PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
