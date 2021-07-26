@@ -9,6 +9,7 @@
 #include <pybind11/stl.h>
 
 #include "Acquisition.h"
+#include "benchmark.h"
 #include "diffusion_tensor.h"
 #include "fit.h"
 #include "models.h"
@@ -219,6 +220,28 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
     _dw_ssfp_fit.def(
         "epg_discrete_3d", &epg_discrete_3d,
         "species"_a, "acquisition"_a, "B1"_a);
+    
+    _dw_ssfp_fit.def(
+        "benchmark_freed", 
+        [](sycomore::Species const & species, Acquisition const & acquisition, std::size_t count)
+        {
+            return benchmark(species, acquisition, &freed, count);
+        }, 
+        "species"_a, "acquisition"_a, "count"_a);
+    _dw_ssfp_fit.def(
+        "benchmark_epg_discrete_1d", 
+        [](sycomore::Species const & species, Acquisition const & acquisition, std::size_t count)
+        {
+            return benchmark(species, acquisition, &epg_discrete_1d, count);
+        }, 
+        "species"_a, "acquisition"_a, "count"_a);
+    _dw_ssfp_fit.def(
+        "benchmark_epg_discrete_3d", 
+        [](sycomore::Species const & species, Acquisition const & acquisition, std::size_t count)
+        {
+            return benchmark(species, acquisition, &epg_discrete_3d, count);
+        }, 
+        "species"_a, "acquisition"_a, "count"_a);
     
     _dw_ssfp_fit.def(
         "uniform_to_spherical", &uniform_to_spherical, "u"_a, "v"_a);
