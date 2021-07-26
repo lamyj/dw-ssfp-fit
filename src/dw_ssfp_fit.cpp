@@ -213,7 +213,12 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
         .def_readwrite("end_of_TR", &Acquisition::end_of_TR);
     
     _dw_ssfp_fit.def("freed", &freed, "species"_a, "acquisition"_a, "B1"_a);
-    _dw_ssfp_fit.def("epg", &epg, "species"_a, "acquisition"_a, "B1"_a);
+    _dw_ssfp_fit.def(
+        "epg_discrete_1d", &epg_discrete_1d,
+        "species"_a, "acquisition"_a, "B1"_a);
+    _dw_ssfp_fit.def(
+        "epg_discrete_3d", &epg_discrete_3d,
+        "species"_a, "acquisition"_a, "B1"_a);
     
     _dw_ssfp_fit.def(
         "uniform_to_spherical", &uniform_to_spherical, "u"_a, "v"_a);

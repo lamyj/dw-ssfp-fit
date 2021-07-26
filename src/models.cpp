@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <Eigen/Core>
+#include <sycomore/epg/Discrete.h>
 #include <sycomore/epg/Discrete3D.h>
 #include <sycomore/Species.h>
 #include <sycomore/sycomore.h>
@@ -88,7 +89,74 @@ double freed(
     return -b_minus_1;
 }
 
-double epg(
+double epg_discrete_1d(
+    sycomore::Species const & species,
+    Acquisition const & acquisition, double B1)
+{
+    using namespace sycomore::units;
+
+    bool stable=false;
+    
+    Eigen::Matrix3d D_;
+    for(unsigned int row=0; row<3; ++row)
+    {
+        for(unsigned int col=0; col<3; ++col)
+        {
+            D_(row, col) = species.get_D()[3*row + col].convert_to(std::pow(m, 2)/s);
+        }
+    }
+    double const ADC = 
+        acquisition.direction.transpose() * D_ * acquisition.direction;
+    sycomore::Species const isotropic_species(
+        species.get_R1(), species.get_R2(), ADC*std::pow(m, 2)/s);    
+    
+    int const repetitions = 5*species.get_T1()/acquisition.TR;
+
+    std::vector<double> signal;
+    signal.reserve(repetitions);
+
+    sycomore::epg::Discrete model(isotropic_species, {0,0,1}, 1e-6*rad/m);
+    model.threshold = 1e-6;
+
+    while(!stable && signal.size() < repetitions)
+    {
+        model.apply_pulse(acquisition.alpha*B1);
+        
+        model.apply_time_interval(acquisition.idle);
+        model.apply_time_interval(
+            acquisition.tau_diffusion, acquisition.G_diffusion);
+        model.apply_time_interval(acquisition.idle);
+        
+        model.apply_time_interval(acquisition.ro_minus);
+        model.apply_time_interval(acquisition.ro_plus);
+        signal.push_back(std::abs(model.echo()));
+        model.apply_time_interval(acquisition.ro_plus);
+        model.apply_time_interval(acquisition.ro_minus);
+
+        model.apply_time_interval(acquisition.end_of_TR);
+
+        if(signal.size() > 20)
+        {
+            auto const begin = signal.end()-20;
+            auto const end = signal.end();
+            auto const mean = 1./20. * std::accumulate(begin, end, 0.);
+            auto const range = std::minmax_element(begin, end);
+        
+            if((*(range.second)-*(range.first))/mean < 1e-2)
+            {
+                stable = true;
+            }
+        }
+    }
+    
+    auto const begin = signal.end()-20;
+    auto const end = signal.end();
+    auto const mean = 1./20. * std::accumulate(begin, end, 0.);
+    
+    return mean;
+}
+
+double epg_discrete_3d(
     sycomore::Species const & species,
     Acquisition const & acquisition, double B1)
 {
