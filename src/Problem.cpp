@@ -55,7 +55,7 @@ Problem
     {
         for(unsigned int col=0; col<3; ++col)
         {
-            D_[3*row + col] = D(row, colum) * std::pow(m, 2)/s;
+            D_[3*row + col] = D(row, col) * std::pow(m, 2)/s;
         }
     }
     

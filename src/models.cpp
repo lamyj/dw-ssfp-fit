@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <Eigen/Core>
+#include <sycomore/epg/Discrete3D.h>
 #include <sycomore/Species.h>
 #include <sycomore/sycomore.h>
 
@@ -85,4 +86,57 @@ double freed(
     
     // b_0 is the FID mode, b_{-1} is the pre-FID mode.
     return -b_minus_1;
+}
+
+double epg(
+    sycomore::Species const & species,
+    Acquisition const & acquisition, double B1)
+{
+    using namespace sycomore::units;
+
+    bool stable=false;
+    
+    int const repetitions = 5*species.get_T1()/acquisition.TR;
+
+    std::vector<double> signal;
+    signal.reserve(repetitions);
+
+    sycomore::epg::Discrete3D model(species, {0,0,1}, 1e-6*rad/m);
+    model.threshold = 1e-6;
+
+    while(!stable && signal.size() < repetitions)
+    {
+        model.apply_pulse(acquisition.alpha*B1);
+        
+        model.apply_time_interval(acquisition.idle);
+        model.apply_time_interval(acquisition.diffusion);
+        model.apply_time_interval(acquisition.idle);
+        
+        model.apply_time_interval(acquisition.ro_minus);
+        model.apply_time_interval(acquisition.ro_plus);
+        signal.push_back(std::abs(model.echo()));
+        model.apply_time_interval(acquisition.ro_plus);
+        model.apply_time_interval(acquisition.ro_minus);
+
+        model.apply_time_interval(acquisition.end_of_TR);
+
+        if(signal.size() > 20)
+        {
+            auto const begin = signal.end()-20;
+            auto const end = signal.end();
+            auto const mean = 1./20. * std::accumulate(begin, end, 0.);
+            auto const range = std::minmax_element(begin, end);
+        
+            if((*(range.second)-*(range.first))/mean < 1e-2)
+            {
+                stable = true;
+            }
+        }
+    }
+    
+    auto const begin = signal.end()-20;
+    auto const end = signal.end();
+    auto const mean = 1./20. * std::accumulate(begin, end, 0.);
+    
+    return mean;
 }

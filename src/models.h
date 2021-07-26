@@ -26,4 +26,22 @@ double freed(
     sycomore::Species const & species,
     Acquisition const & acquisition, double B1);
 
+/**
+ * @brief EPG model of the DW-SSFP signal, based on the "canonical" sequence
+ * diagram.
+ * 
+ * Reference: *Steady-state diffusion-weighted imaging: theory, acquisition and
+ * analysis*. McNab & Miller. NMR in Biomedicine 23(7). 2010.
+ * [doi:10.1002/nbm.1509](https://doi.org/10.1002/nbm.1509)
+ * 
+ * @param T1: species @f$T_1@f$, in s.
+ * @param T2: species @f$T_2@f$, in s.
+ * @param D: species diffusion tensor, in m²/s.
+ * @param acquisition: acquisition parameters.
+ * @param B1: relative B1, unitless.
+ */
+double epg(
+    sycomore::Species const & species,
+    Acquisition const & acquisition, double B1);
+
 #endif // _96a3fddd_ce2d_434d_b798_2ee72aba3278
