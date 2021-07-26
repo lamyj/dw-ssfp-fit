@@ -11,6 +11,7 @@
 #include "Acquisition.h"
 #include "diffusion_tensor.h"
 #include "fit.h"
+#include "models.h"
 #include "Problem.h"
 
 namespace pybind11 { namespace detail {
@@ -210,6 +211,8 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
         .def_readwrite("ro_plus", &Acquisition::ro_plus)
         .def_readwrite("ro_minus", &Acquisition::ro_minus)
         .def_readwrite("end_of_TR", &Acquisition::end_of_TR);
+    
+    _dw_ssfp_fit.def("freed", &freed, "species"_a, "acquisition"_a, "B1"_a);
     
     _dw_ssfp_fit.def(
         "uniform_to_spherical", &uniform_to_spherical, "u"_a, "v"_a);

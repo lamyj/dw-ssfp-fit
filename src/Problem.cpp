@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 #include <pagmo/types.hpp>
+#include <sycomore/Species.h>
+#include <sycomore/units.h>
 
 #include "diffusion_tensor.h"
 
@@ -40,14 +42,27 @@ pagmo::vector_double
 Problem
 ::fitness(pagmo::vector_double const & scaled_dv) const
 {
+    using namespace sycomore::units;
+    
     auto const true_dv = Problem::get_true_dv(scaled_dv);
     auto const D = Problem::get_diffusion_tensor(true_dv);
     
     auto const & non_dw_acquisition = this->scheme[this->non_dw_index];
     auto const non_dw_signal = this->signals[this->non_dw_index];
     
+    sycomore::Array<sycomore::Quantity> D_(9);
+    for(unsigned int row=0; row<3; ++row)
+    {
+        for(unsigned int col=0; col<3; ++col)
+        {
+            D_[3*row + col] = D(row, colum) * std::pow(m, 2)/s;
+        }
+    }
+    
+    sycomore::Species const species(this->T1*s, this->T2*s, D_);
+    
     auto const simulated_signal_non_dw = this->simulator(
-        this->T1, this->T2, this->B1, D, non_dw_acquisition);
+        species, non_dw_acquisition, this->B1);
     
     double residuals = 0;
     for(std::size_t i=0, end=this->scheme.size(); i!=end; ++i)
@@ -61,7 +76,7 @@ Problem
         auto measured_signal = this->signals[i]/non_dw_signal;
         
         auto const simulated_signal_dw = this->simulator(
-            this->T1, this->T2, this->B1, D, acquisition);
+            species, acquisition, this->B1);
         
         auto const simulated_signal = simulated_signal_dw/simulated_signal_non_dw;
         

@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 #include <pagmo/types.hpp>
+#include <sycomore/Species.h>
 
 #include "Acquisition.h"
 
@@ -17,7 +18,7 @@ public:
      * @f$T_1@f$, @f$T_2@f$, @f$D@f$, and acquisition parameters.
      */
     using Simulator = double(*)(
-        double, double, double, Eigen::Matrix3d const &, Acquisition const &);
+        sycomore::Species const &, Acquisition const &, double);
     
     /// @brief Parameters of the set of acquisitions to fit.
     std::vector<Acquisition> scheme;

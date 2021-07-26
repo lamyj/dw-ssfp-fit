@@ -2,6 +2,7 @@
 #define _96a3fddd_ce2d_434d_b798_2ee72aba3278
 
 #include <Eigen/Core>
+#include <sycomore/Species.h>
 #include "Acquisition.h"
 
 /// @file
@@ -18,10 +19,11 @@
  * @param T2: species @f$T_2@f$, in s.
  * @param D: species diffusion tensor, in m²/s.
  * @param acquisition: acquisition parameters (@f$\alpha@f$, TR, 
- *   @f$G_{\text{diffusion}}@f$, @f$\tau_{\text{diffusion}}@f$, direction)
+ *   @f$G_{\text{diffusion}}@f$, @f$\tau_{\text{diffusion}}@f$, direction).
+ * @param B1: relative B1, unitless.
  */
 double freed(
-    double T1, double T2, double B1, Eigen::Matrix3d const & D, 
-    Acquisition const & acquisition);
+    sycomore::Species const & species,
+    Acquisition const & acquisition, double B1);
 
 #endif // _96a3fddd_ce2d_434d_b798_2ee72aba3278
