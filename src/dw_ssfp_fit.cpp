@@ -169,6 +169,7 @@ build_diffusion_tensor(pybind11::array_t<double> dv_array)
 PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
 {
     using namespace pybind11::literals;
+    using namespace sycomore::units;
     
     if(import_mpi4py() < 0)
     {
@@ -176,18 +177,25 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
     }
     
     pybind11::class_<Acquisition>(_dw_ssfp_fit, "Acquisition")
-        .def(pybind11::init(
-            [](
-                double alpha, double G_diffusion, double tau_diffusion, 
-                Eigen::Vector3d direction, double TE, double TR, 
-                double pixel_bandwidth, double resolution, double G_max) 
-            { 
-                return Acquisition{
-                    alpha, G_diffusion, tau_diffusion, direction, TE, TR,
-                    pixel_bandwidth, resolution, G_max};
-            }),
-            "alpha"_a=0, "G_diffusion"_a=0, "tau_diffusion"_a=0, 
-            "direction"_a=Eigen::Vector3d{1,0,0}, "TE"_a=0, "TR"_a=0,
+        .def(pybind11::init<
+                sycomore::Quantity, 
+                sycomore::Quantity, sycomore::Quantity, Eigen::Vector3d, 
+                sycomore::Quantity, sycomore::Quantity, 
+                sycomore::Quantity, sycomore::Quantity, sycomore::Quantity>(),
+            "alpha"_a=0*rad,
+            "G_diffusion"_a=0*T/m, "tau_diffusion"_a=0*s,
+                "direction"_a=Eigen::Vector3d{1,0,0},
+            "TE"_a=0*s, "TR"_a=0*s,
+            "pixel_bandwidth"_a=0*Hz, "resolution"_a=0*m, "G_max"_a=0*T/m)
+        .def(pybind11::init<
+                double, 
+                double, double, Eigen::Vector3d, 
+                double, double, 
+                double, double, double>(),
+            "alpha"_a=0,
+            "G_diffusion"_a=0, "tau_diffusion"_a=0,
+                "direction"_a=Eigen::Vector3d{1,0,0},
+            "TE"_a=0, "TR"_a=0,
             "pixel_bandwidth"_a=0, "resolution"_a=0, "G_max"_a=0)
         .def_readwrite("alpha", &Acquisition::alpha)
         .def_readwrite("G_diffusion", &Acquisition::G_diffusion)
@@ -197,7 +205,11 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
         .def_readwrite("TR", &Acquisition::TR)
         .def_readwrite("pixel_bandwidth", &Acquisition::pixel_bandwidth)
         .def_readwrite("resolution", &Acquisition::resolution)
-        .def_readwrite("G_max", &Acquisition::G_max);
+        .def_readwrite("G_max", &Acquisition::G_max)
+        .def_readwrite("diffusion", &Acquisition::diffusion)
+        .def_readwrite("ro_plus", &Acquisition::ro_plus)
+        .def_readwrite("ro_minus", &Acquisition::ro_minus)
+        .def_readwrite("end_of_TR", &Acquisition::end_of_TR);
     
     _dw_ssfp_fit.def(
         "uniform_to_spherical", &uniform_to_spherical, "u"_a, "v"_a);
