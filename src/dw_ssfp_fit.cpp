@@ -36,13 +36,14 @@ public:
 
 } }
 
-std::pair<pybind11::array_t<double>, pybind11::array_t<double>>
+pybind11::tuple
 fit_wrapper(
     std::vector<Acquisition> const & scheme, unsigned int non_dw, 
     pybind11::array_t<double> DW_SSFP, pybind11::array_t<double> T1_map,
     pybind11::array_t<double> T2_map, pybind11::array_t<double> B1_map,
     boost::mpi::communicator communicator,
-    unsigned int population, unsigned int generations)
+    unsigned int population, unsigned int generations,
+    bool return_individuals, bool return_champions)
 {
     std::size_t blocks_count;
     int block_size;
@@ -104,13 +105,27 @@ fit_wrapper(
         shape.push_back(3);
         shape.push_back(3);
         
-        individuals = pybind11::array_t<double>(shape);
+        if(return_individuals)
+        {
+            individuals = pybind11::array_t<double>(shape);
+        }
+        else
+        {
+            individuals = pybind11::array_t<double>();
+        }
         
         shape = {DW_SSFP.shape(), DW_SSFP.shape()+DW_SSFP.ndim()-1};
         shape.push_back(3);
         shape.push_back(3);
         
-        champions = pybind11::array_t<double>(shape);
+        if(return_champions)
+        {
+            champions = pybind11::array_t<double>(shape);
+        }
+        else
+        {
+            champions = pybind11::array_t<double>();
+        }
     }
     
     boost::mpi::broadcast(communicator, blocks_count, 0);
@@ -119,9 +134,13 @@ fit_wrapper(
     fit(
         scheme, non_dw, DW_SSFP.data(), T1_map.data(), T2_map.data(),
         B1_map.data(), communicator, population, generations, blocks_count, 
-        block_size, individuals.mutable_data(), champions.mutable_data());
+        block_size, 
+        return_individuals?individuals.mutable_data():nullptr,
+        return_champions?champions.mutable_data():nullptr);
     
-    return {individuals, champions};
+    return pybind11::make_tuple(
+        return_individuals?individuals.cast<pybind11::object>():pybind11::none(),
+        return_champions?champions.cast<pybind11::object>():pybind11::none());
 }
 
 pybind11::array_t<double>
@@ -246,5 +265,6 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
     _dw_ssfp_fit.def(
         "fit", &fit_wrapper, 
         "scheme"_a, "non_dw"_a, "DW_SSFP"_a, "T1_map"_a, "T2_map"_a, "B1_map"_a,
-        "communicator"_a, "population"_a=100, "generations"_a=100);
+        "communicator"_a, "population"_a=100, "generations"_a=100,
+        "return_individuals"_a=true, "return_champions"_a=true);
 }

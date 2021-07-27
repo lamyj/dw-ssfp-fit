@@ -35,8 +35,10 @@ void fit(
     // NOTE: data/model do not allow to easily specify ftol/xtol
     pagmo::algorithm algorithm{pagmo::de1220{generations}};
     
-    std::vector<double> local_individuals(item_size*population*subset_blocks_count);
-    std::vector<double> local_champions(item_size*subset_blocks_count);
+    std::vector<double> local_individuals(
+        individuals!=nullptr?item_size*population*subset_blocks_count:0);
+    std::vector<double> local_champions(
+        champions!=nullptr?item_size*subset_blocks_count:0);
     for(std::size_t i=0; i<subset_blocks_count; ++i)
     {
         std::vector<double> signals(
@@ -47,15 +49,21 @@ void fit(
             epg_discrete_1d};
         fit(
             problem, algorithm, population, generations,
-            local_individuals.data()+item_size*population*i,
-            local_champions.data()+item_size*i);
+            individuals!=nullptr?local_individuals.data()+item_size*population*i:nullptr,
+            champions!=nullptr?local_champions.data()+item_size*i:nullptr);
     }
     
-    gather_blocks(
-        communicator, local_individuals, blocks_count, item_size*population, 
-        individuals);
-    gather_blocks(
-        communicator, local_champions, blocks_count, item_size, champions);
+    if(individuals != nullptr)
+    {
+        gather_blocks(
+            communicator, local_individuals, blocks_count, item_size*population, 
+            individuals);
+    }
+    if(champions != nullptr)
+    {
+        gather_blocks(
+            communicator, local_champions, blocks_count, item_size, champions);
+    }
 }
 
 void fit(
@@ -68,16 +76,23 @@ void fit(
     island.wait_check();
     
     auto const final_population = island.get_population();
-    for(std::size_t index=0, end=final_population.size(); index!=end; ++index)
+    
+    if(individuals != nullptr)
     {
-        auto const & scaled_dv = final_population.get_x()[index];
-        auto const true_dv = Problem::get_true_dv(scaled_dv);
-        auto const D = Problem::get_diffusion_tensor(true_dv);
-        std::copy(D.data(), D.data()+D.size(), individuals+9*index);
+        for(std::size_t index=0, end=final_population.size(); index!=end; ++index)
+        {
+            auto const & scaled_dv = final_population.get_x()[index];
+            auto const true_dv = Problem::get_true_dv(scaled_dv);
+            auto const D = Problem::get_diffusion_tensor(true_dv);
+            std::copy(D.data(), D.data()+D.size(), individuals+9*index);
+        }
     }
     
-    auto const & champion_dv = final_population.champion_x();
-    auto const true_dv = Problem::get_true_dv(champion_dv);
-    auto const D = Problem::get_diffusion_tensor(true_dv);
-    std::copy(D.data(), D.data()+D.size(), champion);
+    if(champion != nullptr)
+    {
+        auto const & champion_dv = final_population.champion_x();
+        auto const true_dv = Problem::get_true_dv(champion_dv);
+        auto const D = Problem::get_diffusion_tensor(true_dv);
+        std::copy(D.data(), D.data()+D.size(), champion);
+    }
 }
