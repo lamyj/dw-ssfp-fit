@@ -170,9 +170,8 @@ double epg_discrete_3d(
     signal.reserve(repetitions);
 
     sycomore::epg::Discrete3D model(species, {0,0,1}, 1e-6*rad/m);
-    model.threshold = 1e-6;
 
-    while(!stable && signal.size() < repetitions)
+    while(signal.size() < repetitions)
     {
         model.apply_pulse(acquisition.alpha*B1);
         
@@ -187,19 +186,6 @@ double epg_discrete_3d(
         model.apply_time_interval(acquisition.ro_minus);
 
         model.apply_time_interval(acquisition.end_of_TR);
-
-        if(signal.size() > 20)
-        {
-            auto const begin = signal.end()-20;
-            auto const end = signal.end();
-            auto const mean = 1./20. * std::accumulate(begin, end, 0.);
-            auto const range = std::minmax_element(begin, end);
-        
-            if((*(range.second)-*(range.first))/mean < 1e-2)
-            {
-                stable = true;
-            }
-        }
     }
     
     auto const begin = signal.end()-20;
