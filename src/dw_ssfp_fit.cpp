@@ -42,7 +42,7 @@ fit_wrapper(
     pybind11::array_t<double> DW_SSFP, pybind11::array_t<double> T1_map,
     pybind11::array_t<double> T2_map, pybind11::array_t<double> B1_map,
     boost::mpi::communicator communicator,
-    unsigned int population, unsigned int generations, bool return_tensor)
+    unsigned int population, unsigned int generations)
 {
     std::size_t blocks_count;
     int block_size;
@@ -101,28 +101,14 @@ fit_wrapper(
         
         std::vector<int> shape(DW_SSFP.shape(), DW_SSFP.shape()+DW_SSFP.ndim()-1);
         shape.push_back(population);
-        if(return_tensor)
-        {
-            shape.push_back(3);
-            shape.push_back(3);
-        }
-        else
-        {
-            shape.push_back(6);
-        }
+        shape.push_back(3);
+        shape.push_back(3);
         
         individuals = pybind11::array_t<double>(shape);
         
-        shape = std::vector<int>(DW_SSFP.shape(), DW_SSFP.shape()+DW_SSFP.ndim()-1);
-        if(return_tensor)
-        {
-            shape.push_back(3);
-            shape.push_back(3);
-        }
-        else
-        {
-            shape.push_back(6);
-        }
+        shape = {DW_SSFP.shape(), DW_SSFP.shape()+DW_SSFP.ndim()-1};
+        shape.push_back(3);
+        shape.push_back(3);
         
         champions = pybind11::array_t<double>(shape);
     }
@@ -133,8 +119,7 @@ fit_wrapper(
     fit(
         scheme, non_dw, DW_SSFP.data(), T1_map.data(), T2_map.data(),
         B1_map.data(), communicator, population, generations, blocks_count, 
-        block_size, return_tensor, 
-        individuals.mutable_data(), champions.mutable_data());
+        block_size, individuals.mutable_data(), champions.mutable_data());
     
     return {individuals, champions};
 }
@@ -261,6 +246,5 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
     _dw_ssfp_fit.def(
         "fit", &fit_wrapper, 
         "scheme"_a, "non_dw"_a, "DW_SSFP"_a, "T1_map"_a, "T2_map"_a, "B1_map"_a,
-        "communicator"_a, "population"_a=100, "generations"_a=100,
-        "return_tensor"_a=true);
+        "communicator"_a, "population"_a=100, "generations"_a=100);
 }
