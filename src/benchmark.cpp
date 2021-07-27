@@ -1,7 +1,11 @@
 #include "benchmark.h"
 
+#include <algorithm>
 #include <chrono>
+#include <vector>
+
 #include <sycomore/Species.h>
+
 #include "Acquisition.h"
 #include "Problem.h"
 
@@ -13,12 +17,12 @@ double benchmark(
     constexpr auto const ticks_per_second = 
         double(Clock::period::den) / double(Clock::period::num);
     
-    double duration=0;
+    std::vector<double> duration(count, 0.);
     for(std::size_t i=0; i!=count; ++i)
     {
         auto const now = Clock::now();
         simulator(species, acquisition, 1.0);
-        duration += (Clock::now()-now).count()/ticks_per_second;
+        duration[i] = (Clock::now()-now).count()/ticks_per_second;
     }
-    return duration/count;
+    return *std::min_element(duration.begin(), duration.end());
 }
