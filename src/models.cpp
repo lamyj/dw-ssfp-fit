@@ -116,7 +116,7 @@ double epg_discrete_1d(
     signal.reserve(repetitions);
 
     sycomore::epg::Discrete model(isotropic_species, {0,0,1}, 1e-6*rad/m);
-    model.threshold = 1e-6;
+    model.threshold = 1e-4;
 
     while(!stable && signal.size() < repetitions)
     {
