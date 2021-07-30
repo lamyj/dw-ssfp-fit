@@ -55,6 +55,11 @@ struct Acquisition
         double TE, double TR,
         double pixel_bandwidth, double resolution, double G_max);
     
+    Acquisition(Acquisition const &) = default;
+    Acquisition(Acquisition &&) = default;
+    Acquisition & operator=(Acquisition const &) = default;
+    ~Acquisition() = default;
+    
     void update_intervals();
 };
 

@@ -41,6 +41,12 @@ public:
     /// @brief Simulation function (see @ref Simulator for parameters).
     Simulator simulator;
     
+    Problem() = default;
+    Problem(Problem const &) = default;
+    Problem(Problem &&) = default;
+    Problem & operator=(Problem const &) = default;
+    ~Problem() = default;
+    
     /// @brief Rescale a dv from [-1, 1] to its true range.
     static pagmo::vector_double get_true_dv(pagmo::vector_double const & scaled_dv);
     
