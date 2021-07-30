@@ -143,35 +143,6 @@ fit_wrapper(
         return_champions?champions.cast<pybind11::object>():pybind11::none());
 }
 
-pybind11::array_t<double>
-build_diffusion_tensor(pybind11::array_t<double> dv_array)
-{
-    std::vector<int> shape(dv_array.shape(), dv_array.shape()+dv_array.ndim()-1);
-    shape.push_back(3);
-    shape.push_back(3);
-    pybind11::array_t<double> D_array(shape);
-    
-    auto dv_it = dv_array.data();
-    auto dv_end = dv_array.data()+dv_array.size();
-    std::vector<double> scaled_dv(6);
-    auto D_it = D_array.mutable_data();
-    Eigen::Matrix3d D;
-    
-    while(dv_it != dv_end)
-    {
-        std::copy(dv_it, dv_it+6, scaled_dv.begin());
-        dv_it += 6;
-        
-        auto const true_dv = Problem::get_true_dv(scaled_dv);
-        D = Problem::get_diffusion_tensor(true_dv);
-        
-        std::copy(D.data(), D.data()+D.size(), D_it);
-        D_it += 9;
-    }
-    
-    return D_array;
-}
-
 PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
 {
     using namespace pybind11::literals;
@@ -246,21 +217,6 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
             return benchmark(species, acquisition, &epg_discrete_3d, count);
         }, 
         "species"_a, "acquisition"_a, "count"_a);
-    
-    _dw_ssfp_fit.def(
-        "uniform_to_spherical", &uniform_to_spherical, "u"_a, "v"_a);
-    
-    _dw_ssfp_fit.def(
-        "build_diffusion_tensor", 
-        pybind11::overload_cast<double, double, double, double, double, double>(
-            &build_diffusion_tensor), 
-        "theta"_a, "phi"_a, "psi"_a, "lambda1"_a, "lambda2"_a, "lambda3"_a);
-    
-    _dw_ssfp_fit.def(
-        "build_diffusion_tensor", 
-        pybind11::overload_cast<pybind11::array_t<double>>(
-            &build_diffusion_tensor),
-        "array"_a);
     
     _dw_ssfp_fit.def(
         "fit", &fit_wrapper, 
