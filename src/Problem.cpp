@@ -9,8 +9,6 @@
 
 #include "diffusion_tensor.h"
 
-#include <iostream>
-
 pagmo::vector_double
 Problem
 ::get_true_dv(pagmo::vector_double const & scaled_dv)

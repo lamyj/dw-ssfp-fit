@@ -22,12 +22,9 @@ void fit(
     // Dispatch the chunks to the workers. 
     auto DW_SSFP_subset = scatter_blocks(
         communicator, DW_SSFP, blocks_count, block_size);
-    auto T1_subset = scatter_blocks(
-        communicator, T1_map, blocks_count, block_size);
-    auto T2_subset = scatter_blocks(
-        communicator, T2_map, blocks_count, block_size);
-    auto B1_subset = scatter_blocks(
-        communicator, B1_map, blocks_count, block_size);
+    auto T1_subset = scatter_blocks(communicator, T1_map, blocks_count, 1);
+    auto T2_subset = scatter_blocks(communicator, T2_map, blocks_count, 1);
+    auto B1_subset = scatter_blocks(communicator, B1_map, blocks_count, 1);
     
     auto const subset_blocks_count = DW_SSFP_subset.size()/block_size;
     auto const item_size = 9;

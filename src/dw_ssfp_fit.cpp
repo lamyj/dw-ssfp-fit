@@ -13,7 +13,6 @@
 #include "diffusion_tensor.h"
 #include "fit.h"
 #include "models.h"
-#include "Problem.h"
 
 namespace pybind11 { namespace detail {
 
