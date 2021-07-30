@@ -11,7 +11,7 @@ find_package(Eigen3 REQUIRED)
 find_package(MPI REQUIRED)
 find_package(Pagmo REQUIRED)
 find_package(pybind11 REQUIRED)
-find_package(Python3 3.7 COMPONENTS Interpreter NumPy REQUIRED)
+find_package(Python3 3.6 COMPONENTS Interpreter REQUIRED)
 find_package(sycomore REQUIRED)
 
 execute_process(
@@ -28,8 +28,7 @@ target_include_directories(dw_ssfp_fit_pybind PUBLIC ${MPI4PY_INCLUDES})
 target_link_libraries(
     dw_ssfp_fit_pybind 
     PUBLIC 
-        Boost::mpi Eigen3::Eigen MPI::MPI_CXX Pagmo::pagmo Python3::NumPy
-        sycomore::libsycomore)
+        Boost::mpi Eigen3::Eigen MPI::MPI_CXX Pagmo::pagmo sycomore::libsycomore)
 set_target_properties(dw_ssfp_fit_pybind PROPERTIES OUTPUT_NAME _dw_ssfp_fit)
 
 file(GLOB_RECURSE python_files "src/*.py")

@@ -5,6 +5,11 @@
 #include <utility>
 #include <vector>
 
+#if BOOST_VERSION <= 106900
+// Compile error due to scoping error.
+using namespace boost::mpi::detail;
+#endif
+
 #include <boost/mpi/collectives.hpp>
 #include <boost/mpi/communicator.hpp>
 
