@@ -45,68 +45,42 @@ fit_wrapper(
     unsigned int population, unsigned int generations,
     bool return_individuals, bool return_champions)
 {
+    using namespace std::string_literals;
+    
     std::size_t blocks_count;
     int block_size;
     pybind11::array_t<double> individuals, champions;
     
     if(communicator.rank() == 0)
     {
-        if(DW_SSFP.ndim() != 1+T1_map.ndim())
+        for(auto && item: {
+            std::make_pair("T1_map", T1_map), std::make_pair("T2_map", T2_map),
+            std::make_pair("B1_map", B1_map)})
         {
-            throw std::runtime_error("DW_SSFP and T1_map dimensions don't match");
-        }
-        if(DW_SSFP.ndim() != 1+T2_map.ndim())
-        {
-            throw std::runtime_error("DW_SSFP and T2_map dimensions don't match");
-        }
-        if(DW_SSFP.ndim() != 1+B1_map.ndim())
-        {
-            throw std::runtime_error("DW_SSFP and B1_map dimensions don't match");
-        }
-        
-        for(int i=0, end=T1_map.ndim(); i!=end; ++i)
-        {
-            if(DW_SSFP.shape(i) != T1_map.shape(i))
+            if(DW_SSFP.ndim() != 1+item.second.ndim())
             {
-                throw std::runtime_error("DW_SSFP and T1_map shapes don't match");
+                throw std::runtime_error("ndim mismatch: "s + item.first);
             }
-            if(DW_SSFP.shape(i) != T2_map.shape(i))
+            for(int i=0, end=item.second.ndim(); i!=end; ++i)
             {
-                throw std::runtime_error("DW_SSFP and T2_map shapes don't match");
+                if(DW_SSFP.shape(i) != item.second.shape(i))
+                {
+                    throw std::runtime_error("shape mismatch: "s + item.first);
+                }
             }
-            if(DW_SSFP.shape(i) != B1_map.shape(i))
-            {
-                throw std::runtime_error("DW_SSFP and B1_map shapes don't match");
-            }
-        }
-        
-        if(!(DW_SSFP.flags() & pybind11::array::c_style))
-        {
-            throw std::runtime_error("DW_SSFP is not contiguous");
-        }
-        if(!(T1_map.flags() & pybind11::array::c_style))
-        {
-            throw std::runtime_error("T1_map is not contiguous");
-        }
-        if(!(T2_map.flags() & pybind11::array::c_style))
-        {
-            throw std::runtime_error("T2_map is not contiguous");
-        }
-        if(!(B1_map.flags() & pybind11::array::c_style))
-        {
-            throw std::runtime_error("B1_map is not contiguous");
         }
         
         block_size = DW_SSFP.shape(DW_SSFP.ndim()-1);
         blocks_count = DW_SSFP.size() / block_size;
         
-        std::vector<int> shape(DW_SSFP.shape(), DW_SSFP.shape()+DW_SSFP.ndim()-1);
-        shape.push_back(population);
-        shape.push_back(3);
-        shape.push_back(3);
-        
         if(return_individuals)
         {
+            std::vector<int> shape(
+                DW_SSFP.shape(), DW_SSFP.shape()+DW_SSFP.ndim()-1);
+            shape.push_back(population);
+            shape.push_back(3);
+            shape.push_back(3);
+            
             individuals = pybind11::array_t<double>(shape);
         }
         else
@@ -114,12 +88,13 @@ fit_wrapper(
             individuals = pybind11::array_t<double>();
         }
         
-        shape = {DW_SSFP.shape(), DW_SSFP.shape()+DW_SSFP.ndim()-1};
-        shape.push_back(3);
-        shape.push_back(3);
-        
         if(return_champions)
         {
+            std::vector<int> shape(
+                DW_SSFP.shape(), DW_SSFP.shape()+DW_SSFP.ndim()-1);
+            shape.push_back(3);
+            shape.push_back(3);
+            
             champions = pybind11::array_t<double>(shape);
         }
         else
@@ -198,21 +173,27 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
     
     _dw_ssfp_fit.def(
         "benchmark_freed", 
-        [](sycomore::Species const & species, Acquisition const & acquisition, std::size_t count)
+        [](
+            sycomore::Species const & species, Acquisition const & acquisition,
+            std::size_t count)
         {
             return benchmark(species, acquisition, &freed, count);
         }, 
         "species"_a, "acquisition"_a, "count"_a);
     _dw_ssfp_fit.def(
         "benchmark_epg_discrete_1d", 
-        [](sycomore::Species const & species, Acquisition const & acquisition, std::size_t count)
+        [](
+            sycomore::Species const & species, Acquisition const & acquisition,
+            std::size_t count)
         {
             return benchmark(species, acquisition, &epg_discrete_1d, count);
         }, 
         "species"_a, "acquisition"_a, "count"_a);
     _dw_ssfp_fit.def(
         "benchmark_epg_discrete_3d", 
-        [](sycomore::Species const & species, Acquisition const & acquisition, std::size_t count)
+        [](
+            sycomore::Species const & species, Acquisition const & acquisition,
+            std::size_t count)
         {
             return benchmark(species, acquisition, &epg_discrete_3d, count);
         }, 
