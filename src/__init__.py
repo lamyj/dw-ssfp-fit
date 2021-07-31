@@ -14,7 +14,6 @@ def wrapped_fit(
     base_shape = DW_SSFP.shape[:-1]
     
     if communicator.rank == 0:
-        # NOTE: don't cast mask to double
         mask = numpy.asarray(mask.dataobj).astype(bool)
         
         DW_SSFP = DW_SSFP.get_fdata()[mask]
