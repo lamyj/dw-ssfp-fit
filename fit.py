@@ -46,7 +46,8 @@ def main():
         communicator, scheme, arguments.reference,
         DW_SSFP, T1_map, T2_map, B1_map, mask,
         arguments.population, arguments.generations)
-    save(communicator, D, DW_SSFP.affine, arguments.D)
+    if communicator.rank == 0:
+        save(communicator, D, DW_SSFP.affine, arguments.D)
     
 def load(communicator, scheme, DW_SSFP, T1_map, T2_map, B1_map, mask):
     # Load the scheme on all ranks to avoid synchronizing a data structure
@@ -88,12 +89,19 @@ def fit(
     return D
 
 def save(communicator, D, affine, path):
-    if communicator.rank == 0:
-        D = numpy.asfortranarray(1e6*numpy.stack([
-                D[...,x[0], x[1]] 
-                for x in [[0,0], [1,1], [2,2], [0,1], [0,2], [1,2]]
-            ], axis=-1))
-        nibabel.save(nibabel.Nifti1Image(D, affine), str(path))
+    """ Save a diffusion tensor map to an MRtrix-compatible format.
+    """
+    
+    # https://mrtrix.readthedocs.io/en/latest/reference/commands/dwi2tensor.html
+    # https://community.mrtrix.org/t/unit-measure-of-dti-metrics/2401
+    # Order of volume is D11, D22, D33, D12, D13, D23
+    # b-values in scheme are in s/mm^2, so the diffusion coefficients are
+    # implicitly in mm^2/s
+    volumes = [[0,0], [1,1], [2,2], [0,1], [0,2], [1,2]]
+    scale = (m**2/s).convert_to(mm**2/s)
+    D = numpy.asfortranarray(
+        1e6*numpy.stack([D[...,x[0], x[1]] for x in volumes], axis=-1))
+    nibabel.save(nibabel.Nifti1Image(D, affine), str(path))
 
 if __name__ == "__main__":
     sys.exit(main())
