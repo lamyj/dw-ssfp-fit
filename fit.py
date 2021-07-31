@@ -29,10 +29,10 @@ def main():
         help="Number of non-diffusion-weighted (or low-diffusion-weighted) "
             "acquisition")
     parser.add_argument(
-        "--population", "-p", type=int, default=50,
+        "--population", "-p", type=int, default=10,
         help="Number of individuals")
     parser.add_argument(
-        "--generations", "-g", type=int, default=200,
+        "--generations", "-g", type=int, default=1,
         help="Number of generations")
     arguments = parser.parse_args()
     
@@ -84,7 +84,7 @@ def fit(
         population, generations):
     _, D = dw_ssfp_fit.fit(
         scheme, non_dw, DW_SSFP, T1_map, T2_map, B1_map, mask,
-        communicator, 50, 20, False, True)
+        communicator, population, generations, False, True)
     return D
 
 def save(communicator, D, affine, path):
