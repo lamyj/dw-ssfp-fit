@@ -110,7 +110,7 @@ double epg_discrete_1d(
     sycomore::Species const isotropic_species(
         species.get_R1(), species.get_R2(), ADC*std::pow(m, 2)/s);    
     
-    int const repetitions = 5*species.get_T1()/acquisition.TR;
+    int const repetitions = std::max<int>(1, 5*species.get_T1()/acquisition.TR);
 
     std::vector<double> signal;
     signal.reserve(repetitions);
@@ -149,9 +149,10 @@ double epg_discrete_1d(
         }
     }
     
-    auto const begin = signal.end()-20;
+    auto const size = std::min(signal.size(), 20UL);
+    auto const begin = signal.end()-size;
     auto const end = signal.end();
-    auto const mean = 1./20. * std::accumulate(begin, end, 0.);
+    auto const mean = 1./size * std::accumulate(begin, end, 0.);
     
     return mean;
 }
