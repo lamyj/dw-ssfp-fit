@@ -30,9 +30,6 @@ void fit(
     auto const subset_blocks_count = DW_SSFP_subset.size()/block_size;
     auto const item_size = 9;
     
-    // NOTE: data/model do not allow to easily specify ftol/xtol
-    pagmo::algorithm algorithm{pagmo::de1220{generations}};
-    
     std::vector<double> local_individuals(
         individuals!=nullptr?item_size*population*subset_blocks_count:0, 0.);
     std::vector<double> local_champions(
@@ -45,6 +42,7 @@ void fit(
         Problem problem{
             scheme, non_dw, signals, T1_subset[i], T2_subset[i], B1_subset[i],
             epg_discrete_1d};
+        pagmo::algorithm algorithm{pagmo::de1220{generations}};
         fit(
             problem, algorithm, population, generations,
             individuals!=nullptr?local_individuals.data()+item_size*population*i:nullptr,
