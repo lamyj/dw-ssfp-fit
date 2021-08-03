@@ -3,8 +3,10 @@ import json
 import pathlib
 import sys
 
-from mpi4py import MPI
+# WARNING: import nibabel *before* mpi4py to avoid a fork-related warning when
+# running with mpirun.
 import nibabel
+from mpi4py import MPI
 import numpy
 from sycomore.units import *
 
