@@ -47,6 +47,10 @@ Problem
     
     auto const & non_dw_acquisition = this->scheme[this->non_dw_index];
     auto const non_dw_signal = this->signals[this->non_dw_index];
+    if(non_dw_signal == 0.)
+    {
+        throw std::runtime_error("Non DW signal is null");
+    }
     
     sycomore::Array<sycomore::Quantity> D_(9);
     for(unsigned int row=0; row<3; ++row)
@@ -61,6 +65,10 @@ Problem
     
     auto const simulated_signal_non_dw = this->simulator(
         species, non_dw_acquisition, this->B1);
+    if(simulated_signal_non_dw == 0.)
+    {
+        throw std::runtime_error("Simulated non DW signal is null");
+    }
     
     double residuals = 0;
     for(std::size_t i=0, end=this->scheme.size(); i!=end; ++i)

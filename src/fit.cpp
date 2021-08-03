@@ -1,6 +1,7 @@
 #include "fit.h"
 
 #include <algorithm>
+#include <iostream>
 #include <vector>
 #include <boost/mpi/communicator.hpp>
 #include <Eigen/SVD>
@@ -33,9 +34,9 @@ void fit(
     pagmo::algorithm algorithm{pagmo::de1220{generations}};
     
     std::vector<double> local_individuals(
-        individuals!=nullptr?item_size*population*subset_blocks_count:0);
+        individuals!=nullptr?item_size*population*subset_blocks_count:0, 0.);
     std::vector<double> local_champions(
-        champions!=nullptr?item_size*subset_blocks_count:0);
+        champions!=nullptr?item_size*subset_blocks_count:0, 0.);
     for(std::size_t i=0; i<subset_blocks_count; ++i)
     {
         std::vector<double> signals(
@@ -70,26 +71,44 @@ void fit(
 {
     pagmo::island island{algorithm, problem, population};
     island.evolve();
-    island.wait_check();
     
-    auto const final_population = island.get_population();
-    
-    if(individuals != nullptr)
+    bool has_error = false;
+    try
     {
-        for(std::size_t index=0, end=final_population.size(); index!=end; ++index)
-        {
-            auto const & scaled_dv = final_population.get_x()[index];
-            auto const true_dv = Problem::get_true_dv(scaled_dv);
-            auto const D = Problem::get_diffusion_tensor(true_dv);
-            std::copy(D.data(), D.data()+D.size(), individuals+9*index);
-        }
+        island.wait_check();
+    }
+    catch(std::exception const & e)
+    {
+        std::cerr << "Error during evolution: " << e.what() << std::endl;
+        has_error = true;
+    }
+    catch(...)
+    {
+        std::cerr << "Error during evolution (unknown)" << std::endl;
+        has_error = true;
     }
     
-    if(champion != nullptr)
+    if(!has_error)
     {
-        auto const & champion_dv = final_population.champion_x();
-        auto const true_dv = Problem::get_true_dv(champion_dv);
-        auto const D = Problem::get_diffusion_tensor(true_dv);
-        std::copy(D.data(), D.data()+D.size(), champion);
+        auto const final_population = island.get_population();
+        
+        if(individuals != nullptr)
+        {
+            for(std::size_t index=0, end=final_population.size(); index!=end; ++index)
+            {
+                auto const & scaled_dv = final_population.get_x()[index];
+                auto const true_dv = Problem::get_true_dv(scaled_dv);
+                auto const D = Problem::get_diffusion_tensor(true_dv);
+                std::copy(D.data(), D.data()+D.size(), individuals+9*index);
+            }
+        }
+        
+        if(champion != nullptr)
+        {
+            auto const & champion_dv = final_population.champion_x();
+            auto const true_dv = Problem::get_true_dv(champion_dv);
+            auto const D = Problem::get_diffusion_tensor(true_dv);
+            std::copy(D.data(), D.data()+D.size(), champion);
+        }
     }
 }
