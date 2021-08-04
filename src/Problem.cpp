@@ -1,6 +1,8 @@
 #include "Problem.h"
 
 #include <functional>
+#include <iostream>
+#include <limits>
 #include <utility>
 #include <vector>
 #include <pagmo/types.hpp>
@@ -67,7 +69,21 @@ Problem
         species, non_dw_acquisition, this->B1);
     if(simulated_signal_non_dw == 0.)
     {
-        throw std::runtime_error("Simulated non DW signal is null");
+        std::cerr
+            << "Simulated non DW signal is null: "
+            << "alpha=" << non_dw_acquisition.alpha << ", "
+            << "G_diffusion=" << non_dw_acquisition.G_diffusion << ", "
+            << "tau_diffusion=" << non_dw_acquisition.tau_diffusion << ", "
+            << "direction=" << non_dw_acquisition.direction << ", "
+            << "TE=" << non_dw_acquisition.TE << ", "
+            << "TR=" << non_dw_acquisition.TR << ", "
+            << "pixel_bandwidth=" << non_dw_acquisition.pixel_bandwidth << ", "
+            << "resolution=" << non_dw_acquisition.resolution << ", "
+            << "G_max=" << non_dw_acquisition.G_max << ", "
+            << "D=" << D
+            << std::endl;
+        return {std::numeric_limits<pagmo::vector_double::value_type>::max()};
+        // throw std::runtime_error("Simulated non DW signal is null");
     }
     
     double residuals = 0;

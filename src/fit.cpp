@@ -68,11 +68,11 @@ void fit(
     double * individuals, double * champion)
 {
     pagmo::island island{algorithm, problem, population};
-    island.evolve();
     
     bool has_error = false;
     try
     {
+        island.evolve();
         island.wait_check();
     }
     catch(std::exception const & e)
