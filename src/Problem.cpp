@@ -80,6 +80,9 @@ Problem
             << "pixel_bandwidth=" << non_dw_acquisition.pixel_bandwidth << ", "
             << "resolution=" << non_dw_acquisition.resolution << ", "
             << "G_max=" << non_dw_acquisition.G_max << ", "
+            << "T1=" << this->T1 << ", "
+            << "T2=" << this->T2 << ", "
+            << "B1=" << this->B1 << ", "
             << "D=" << D
             << std::endl;
         return {std::numeric_limits<pagmo::vector_double::value_type>::max()};
