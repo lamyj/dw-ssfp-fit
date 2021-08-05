@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+#SBATCH --job-name=DW_SSFP
+#SBATCH --ntasks=24
+
+# WARNING: these two *must* match
+#SBATCH --array=0-19
+TASKS_COUNT=20
+
+import argparse
+import nibabel
+import numpy
+import os
+import socket
+import sys
+import tempfile
+
+import fit
+
+def main():
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    
+    parser.add_argument("image", help="Path to the singularity image")
+    parser.add_argument("scheme", help="Path to the acquisition scheme")
+    parser.add_argument("DW_SSFP", help="Path to the DW-SSFP image")
+    parser.add_argument(
+        "T1_map", help="Path to the T1 map image, must be in seconds")
+    parser.add_argument(
+        "T2_map", help="Path to the T2 map image, must be in seconds")
+    parser.add_argument("B1_map", help="Path to the relative B1 map image")
+    parser.add_argument("mask", help="Path to the mask image")
+    parser.add_argument("D", help="Path to the output diffusion tensor image")
+    
+    parser.add_argument(
+        "--reference", "-r", type=int, default=0,
+        help="Number of non-diffusion-weighted (or low-diffusion-weighted) "
+            "acquisition")
+    parser.add_argument(
+        "--population", "-p", type=int, default=10,
+        help="Number of individuals")
+    parser.add_argument(
+        "--generations", "-g", type=int, default=1,
+        help="Number of generations")
+    arguments = parser.parse_args()
+    
+    task_id = int(os.environ["SLURM_ARRAY_TASK_ID"])
+    print("Task", task_id, "on", socket.gethostname())
+    
+    with tempfile.TemporaryDirectory() as directory:
+        mask = nibabel.load(arguments.mask)
+        mask_data = numpy.asarray(mask.dataobj)
+        mask_indices = numpy.array(mask_data.nonzero())
+        sub_mask_size, remainder = divmod(mask_indices.shape[1], TASKS_COUNT)
+        sub_mask_counts = numpy.array(TASKS_COUNT*[sub_mask_size])
+        sub_mask_counts[:remainder] += 1
+        sub_mask_offsets = numpy.hstack([[0], sub_mask_counts[:-1].cumsum()])
+        
+        sub_mask_data = numpy.zeros_like(mask_data)
+        task_indices = mask_indices[
+            :,
+            sub_mask_offsets[task_id]:sub_mask_offsets[task_id]+sub_mask_counts[task_id]]
+        sub_mask_data[tuple(task_indices.tolist())] = 1
+        
+        sub_mask_path = os.path.join(
+            directory, "mask_{}.nii.gz".format(task_id))
+        nibabel.save(
+            nibabel.Nifti1Image(sub_mask_data, mask.affine), sub_mask_path)
+        
+        sub_D_path = os.path.join(
+            os.path.dirname(arguments.D),
+            "{}_{}.{}".format(
+                os.path.basename(arguments.D).split(".", 1)[0],
+                task_id,
+                os.path.basename(arguments.D).split(".", 1)[1]))
+        
+        sys.argv = [
+            "-r", str(arguments.reference),
+            "-p", str(arguments.population), "-g", str(arguments.generations),
+            *[
+                getattr(arguments, x) for x in [
+                    "scheme", "DW_SSFP", "T1_map", "T2_map", "B1_map"]],
+            sub_mask_path, sub_D_path]
+        return fit.main()
+
+if __name__ == "__main__":
+    sys.exit(main())
