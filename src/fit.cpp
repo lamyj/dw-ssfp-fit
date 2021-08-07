@@ -36,18 +36,37 @@ void fit(
         champions!=nullptr?item_size*subset_blocks_count:0, 0.);
     for(std::size_t i=0; i<subset_blocks_count; ++i)
     {
-        std::vector<double> signals(
-            DW_SSFP_subset.data()+block_size*i, 
-            DW_SSFP_subset.data()+block_size*(i+1));
-        Problem problem{
-            scheme, non_dw, signals, T1_subset[i], T2_subset[i], B1_subset[i],
-            epg_discrete_1d};
-        pagmo::algorithm algorithm{pagmo::de1220{generations}};
-        fit(
-            problem, algorithm, population, generations,
-            individuals!=nullptr?local_individuals.data()+item_size*population*i:nullptr,
-            champions!=nullptr?local_champions.data()+item_size*i:nullptr);
+        try
+        {
+            std::vector<double> signals(
+                DW_SSFP_subset.data()+block_size*i, 
+                DW_SSFP_subset.data()+block_size*(i+1));
+            Problem problem{
+                scheme, non_dw, signals, T1_subset[i], T2_subset[i], B1_subset[i],
+                epg_discrete_1d};
+            pagmo::algorithm algorithm{pagmo::de1220{generations}};
+            fit(
+                problem, algorithm, population, generations,
+                individuals!=nullptr?local_individuals.data()+item_size*population*i:nullptr,
+                champions!=nullptr?local_champions.data()+item_size*i:nullptr);
+        }
+        catch(std::exception & e)
+        {
+            std::cerr 
+                << communicator.rank() << ": "
+                << "Could not fit problem: " << e.what() << std::endl;
+        }
+        catch(...)
+        {
+            std::cerr 
+                << communicator.rank() << ": "
+                << "Could not fit problem (unknown exception)" << std::endl;
+        }
     }
+    
+    std::cout 
+        << communicator.rank() << ": "
+        << "Done fitting subset" << std::endl;
     
     if(individuals != nullptr)
     {

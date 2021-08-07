@@ -16,6 +16,7 @@ def wrapped_fit(
     if communicator.rank == 0:
         mask = numpy.asarray(mask.dataobj).astype(bool)
         
+        # NOTE: slicing by mask returns a C-contiguous, linear, array.
         DW_SSFP = DW_SSFP.get_fdata()[mask]
         T1_map = T1_map.get_fdata()[mask]
         T2_map = T2_map.get_fdata()[mask]
@@ -29,7 +30,6 @@ def wrapped_fit(
         return_individuals, return_champions)
     
     if communicator.rank == 0:
-        # WARNING F-contiguous vs. C-contiguous
         if return_individuals:
             full = numpy.zeros(base_shape+individuals.shape[1:], order="F")
             full[mask] = individuals

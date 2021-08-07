@@ -65,29 +65,12 @@ Problem
     
     sycomore::Species const species(this->T1*s, this->T2*s, D_);
     
-    auto const simulated_signal_non_dw = this->simulator(
-        species, non_dw_acquisition, this->B1);
-    if(simulated_signal_non_dw == 0.)
-    {
-        std::cerr
-            << "Simulated non DW signal is null: "
-            << "alpha=" << non_dw_acquisition.alpha << ", "
-            << "G_diffusion=" << non_dw_acquisition.G_diffusion << ", "
-            << "tau_diffusion=" << non_dw_acquisition.tau_diffusion << ", "
-            << "direction=" << non_dw_acquisition.direction << ", "
-            << "TE=" << non_dw_acquisition.TE << ", "
-            << "TR=" << non_dw_acquisition.TR << ", "
-            << "pixel_bandwidth=" << non_dw_acquisition.pixel_bandwidth << ", "
-            << "resolution=" << non_dw_acquisition.resolution << ", "
-            << "G_max=" << non_dw_acquisition.G_max << ", "
-            << "T1=" << this->T1 << ", "
-            << "T2=" << this->T2 << ", "
-            << "B1=" << this->B1 << ", "
-            << "D=" << D
-            << std::endl;
-        return {std::numeric_limits<pagmo::vector_double::value_type>::max()};
-        // throw std::runtime_error("Simulated non DW signal is null");
-    }
+    // NOTE: when e.g. T2 is too short, the threshold used in the simulator will
+    // cause a return value of 0. Since we divide by this value, clamp it to a
+    // non-0 value.
+    auto const simulated_signal_non_dw = std::max(
+        this->simulator(species, non_dw_acquisition, this->B1),
+        1e-12);
     
     double residuals = 0;
     for(std::size_t i=0, end=this->scheme.size(); i!=end; ++i)
