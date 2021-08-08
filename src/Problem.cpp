@@ -44,57 +44,81 @@ Problem
 {
     using namespace sycomore::units;
     
-    auto const true_dv = Problem::get_true_dv(scaled_dv);
-    auto const D = Problem::get_diffusion_tensor(true_dv);
-    
-    auto const & non_dw_acquisition = this->scheme[this->non_dw_index];
-    auto const non_dw_signal = this->signals[this->non_dw_index];
-    if(non_dw_signal == 0.)
+    try
     {
-        throw std::runtime_error("Non DW signal is null");
-    }
-    
-    sycomore::Array<sycomore::Quantity> D_(9);
-    for(unsigned int row=0; row<3; ++row)
-    {
-        for(unsigned int col=0; col<3; ++col)
+        
+        auto const true_dv = Problem::get_true_dv(scaled_dv);
+        auto const D = Problem::get_diffusion_tensor(true_dv);
+        
+        auto const & non_dw_acquisition = this->scheme[this->non_dw_index];
+        auto const non_dw_signal = this->signals[this->non_dw_index];
+        if(non_dw_signal == 0.)
         {
-            D_[3*row + col] = D(row, col) * std::pow(m, 2)/s;
-        }
-    }
-    
-    sycomore::Species const species(this->T1*s, this->T2*s, D_);
-    
-    // NOTE: when e.g. T2 is too short, the threshold used in the simulator will
-    // cause a return value of 0. Since we divide by this value, clamp it to a
-    // non-0 value.
-    auto const simulated_signal_non_dw = std::max(
-        this->simulator(species, non_dw_acquisition, this->B1),
-        1e-12);
-    
-    double residuals = 0;
-    for(std::size_t i=0, end=this->scheme.size(); i!=end; ++i)
-    {
-        if(i == this->non_dw_index)
-        {
-            continue;
+            throw std::runtime_error("Non DW signal is null");
         }
         
-        auto const & acquisition = this->scheme[i];
-        auto measured_signal = this->signals[i]/non_dw_signal;
+        sycomore::Array<sycomore::Quantity> D_(9);
+        for(unsigned int row=0; row<3; ++row)
+        {
+            for(unsigned int col=0; col<3; ++col)
+            {
+                D_[3*row + col] = D(row, col) * std::pow(m, 2)/s;
+            }
+        }
         
-        auto const simulated_signal_dw = this->simulator(
-            species, acquisition, this->B1);
+        sycomore::Species const species(this->T1*s, this->T2*s, D_);
         
-        auto const simulated_signal = simulated_signal_dw/simulated_signal_non_dw;
+        // NOTE: when e.g. T2 is too short, the threshold used in the simulator will
+        // cause a return value of 0. Since we divide by this value, clamp it to a
+        // non-0 value.
+        auto const simulated_signal_non_dw = std::max(
+            this->simulator(species, non_dw_acquisition, this->B1),
+            1e-12);
         
-        // The signal is normalized and < 1: don't use square norm, but absolute
-        // value to avoid too low residuals.
-        residuals += std::abs(simulated_signal-measured_signal);
+        double residuals = 0;
+        for(std::size_t i=0, end=this->scheme.size(); i!=end; ++i)
+        {
+            if(i == this->non_dw_index)
+            {
+                continue;
+            }
+            
+            auto const & acquisition = this->scheme[i];
+            auto measured_signal = this->signals[i]/non_dw_signal;
+            
+            auto const simulated_signal_dw = this->simulator(
+                species, acquisition, this->B1);
+            
+            auto const simulated_signal = simulated_signal_dw/simulated_signal_non_dw;
+            
+            // The signal is normalized and < 1: don't use square norm, but absolute
+            // value to avoid too low residuals.
+            residuals += std::abs(simulated_signal-measured_signal);
+        }
+        
+        // Normalize by number of acquisition.
+        return {residuals/(this->scheme.size()-1)};
     }
-    
-    // Normalize by number of acquisition.
-    return {residuals/(this->scheme.size()-1)};
+    catch(std::exception const & e)
+    {
+        std::cerr
+            << "Exception in Problem::fitness: " << e.what() << ". "
+            << "T1=" << this->T1 << ", "
+            << "T2=" << this->T2 << ", "
+            << "B1=" << this->B1
+            << std::endl;
+        return {1e9};
+    }
+    catch(...)
+    {
+        std::cerr
+            << "Exception in Problem::fitness (unknown). "
+            << "T1=" << this->T1 << ", "
+            << "T2=" << this->T2 << ", "
+            << "B1=" << this->B1
+            << std::endl;
+        return {1e9};
+    }
 }
 
 std::pair<pagmo::vector_double, pagmo::vector_double>
