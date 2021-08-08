@@ -11,10 +11,9 @@ import nibabel
 import numpy
 import os
 import socket
+import subprocess
 import sys
 import tempfile
-
-import fit
 
 def main():
     parser = argparse.ArgumentParser(
@@ -73,14 +72,16 @@ def main():
                 task_id,
                 os.path.basename(arguments.D).split(".", 1)[1]))
         
-        sys.argv = [
+        subprocess.check_call([
+            "mpirun", "singularity", "exec", arguments.image,
+            "python3", "fit.py", 
             "-r", str(arguments.reference),
             "-p", str(arguments.population), "-g", str(arguments.generations),
             *[
                 getattr(arguments, x) for x in [
                     "scheme", "DW_SSFP", "T1_map", "T2_map", "B1_map"]],
-            sub_mask_path, sub_D_path]
-        return fit.main()
+            sub_mask_path, sub_D_path
+        ])
 
 if __name__ == "__main__":
     sys.exit(main())
