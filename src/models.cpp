@@ -1,6 +1,8 @@
 #include "models.h"
 
 #include <cmath>
+#include <iostream>
+
 #include <Eigen/Core>
 #include <sycomore/epg/Discrete.h>
 #include <sycomore/epg/Discrete3D.h>
@@ -111,45 +113,129 @@ double epg_discrete_1d(
         species.get_R1(), species.get_R2(), ADC*std::pow(m, 2)/s);    
     
     int const repetitions = std::max<int>(1, 5*species.get_T1()/acquisition.TR);
-
+    if(repetitions > 1000000)
+    {
+        std::cerr
+            << "Too many repetitions: " << repetitions << ". "
+            << "Error in simulation (unknown). "
+            << "alpha=" << acquisition.alpha << ", "
+            << "G_diffusion=" << acquisition.G_diffusion << ", "
+            << "tau_diffusion=" << acquisition.tau_diffusion << ", "
+            << "direction=" << acquisition.direction << ", "
+            << "TE=" << acquisition.TE << ", "
+            << "TR=" << acquisition.TR << ", "
+            << "pixel_bandwidth=" << acquisition.pixel_bandwidth << ", "
+            << "resolution=" << acquisition.resolution << ", "
+            << "G_max=" << acquisition.G_max << ", "
+            << "T1=" << species.get_T1() << ", "
+            << "T2=" << species.get_T2() << ", "
+            << "B1=" << B1 << ", "
+            << "D=" << D_
+            << std::endl;
+        return 1e9;
+    }
     std::vector<double> signal;
     signal.reserve(repetitions);
 
     sycomore::epg::Discrete model(isotropic_species, {0,0,1}, 1e-6*rad/m);
     model.threshold = 1e-4;
 
-    while(!stable && signal.size() < repetitions)
+    try
     {
-        model.apply_pulse(acquisition.alpha*B1);
-        
-        model.apply_time_interval(acquisition.idle);
-        model.apply_time_interval(
-            acquisition.tau_diffusion, acquisition.G_diffusion);
-        model.apply_time_interval(acquisition.idle);
-        
-        model.apply_time_interval(acquisition.ro_minus);
-        model.apply_time_interval(acquisition.ro_plus);
-        signal.push_back(std::abs(model.echo()));
-        model.apply_time_interval(acquisition.ro_plus);
-        model.apply_time_interval(acquisition.ro_minus);
-
-        model.apply_time_interval(acquisition.end_of_TR);
-
-        if(signal.size() > 20)
+        while(!stable && signal.size() < repetitions)
         {
-            auto const begin = signal.end()-20;
-            auto const end = signal.end();
-            auto const mean = 1./20. * std::accumulate(begin, end, 0.);
-            auto const range = std::minmax_element(begin, end);
-        
-            if((*(range.second)-*(range.first))/mean < 1e-2)
+            model.apply_pulse(acquisition.alpha*B1);
+            
+            model.apply_time_interval(acquisition.idle);
+            model.apply_time_interval(
+                acquisition.tau_diffusion, acquisition.G_diffusion);
+            model.apply_time_interval(acquisition.idle);
+            
+            model.apply_time_interval(acquisition.ro_minus);
+            model.apply_time_interval(acquisition.ro_plus);
+            signal.push_back(std::abs(model.echo()));
+            model.apply_time_interval(acquisition.ro_plus);
+            model.apply_time_interval(acquisition.ro_minus);
+
+            model.apply_time_interval(acquisition.end_of_TR);
+
+            if(signal.size() > 20)
             {
-                stable = true;
+                auto const begin = signal.end()-20;
+                auto const end = signal.end();
+                auto const mean = 1./20. * std::accumulate(begin, end, 0.);
+                auto const range = std::minmax_element(begin, end);
+            
+                if((*(range.second)-*(range.first))/mean < 1e-2)
+                {
+                    stable = true;
+                }
             }
         }
     }
+    catch(std::exception const & e)
+    {
+        std::cerr
+            << "Error in simulation: " << e.what() << ". "
+            << "alpha=" << acquisition.alpha << ", "
+            << "G_diffusion=" << acquisition.G_diffusion << ", "
+            << "tau_diffusion=" << acquisition.tau_diffusion << ", "
+            << "direction=" << acquisition.direction << ", "
+            << "TE=" << acquisition.TE << ", "
+            << "TR=" << acquisition.TR << ", "
+            << "pixel_bandwidth=" << acquisition.pixel_bandwidth << ", "
+            << "resolution=" << acquisition.resolution << ", "
+            << "G_max=" << acquisition.G_max << ", "
+            << "T1=" << species.get_T1() << ", "
+            << "T2=" << species.get_T2() << ", "
+            << "B1=" << B1 << ", "
+            << "D=" << D_
+            << std::endl;
+        return 1e9;
+    }
+    catch(...)
+    {
+        std::cerr
+            << "Error in simulation (unknown). "
+            << "alpha=" << acquisition.alpha << ", "
+            << "G_diffusion=" << acquisition.G_diffusion << ", "
+            << "tau_diffusion=" << acquisition.tau_diffusion << ", "
+            << "direction=" << acquisition.direction << ", "
+            << "TE=" << acquisition.TE << ", "
+            << "TR=" << acquisition.TR << ", "
+            << "pixel_bandwidth=" << acquisition.pixel_bandwidth << ", "
+            << "resolution=" << acquisition.resolution << ", "
+            << "G_max=" << acquisition.G_max << ", "
+            << "T1=" << species.get_T1() << ", "
+            << "T2=" << species.get_T2() << ", "
+            << "B1=" << B1 << ", "
+            << "D=" << D_
+            << std::endl;
+        return 1e9;
+    }
     
     auto const size = std::min(signal.size(), 20UL);
+    if(size == 0)
+    {
+        std::cerr
+            << "Signal is empty. "
+            << "Error in simulation (unknown). "
+            << "alpha=" << acquisition.alpha << ", "
+            << "G_diffusion=" << acquisition.G_diffusion << ", "
+            << "tau_diffusion=" << acquisition.tau_diffusion << ", "
+            << "direction=" << acquisition.direction << ", "
+            << "TE=" << acquisition.TE << ", "
+            << "TR=" << acquisition.TR << ", "
+            << "pixel_bandwidth=" << acquisition.pixel_bandwidth << ", "
+            << "resolution=" << acquisition.resolution << ", "
+            << "G_max=" << acquisition.G_max << ", "
+            << "T1=" << species.get_T1() << ", "
+            << "T2=" << species.get_T2() << ", "
+            << "B1=" << B1 << ", "
+            << "D=" << D_
+            << std::endl;
+        return 1e9;
+    }
     auto const begin = signal.end()-size;
     auto const end = signal.end();
     auto const mean = 1./size * std::accumulate(begin, end, 0.);
