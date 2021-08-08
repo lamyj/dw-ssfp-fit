@@ -3,8 +3,8 @@
 #SBATCH --ntasks=24
 
 # WARNING: these two *must* match
-#SBATCH --array=0-19
-TASKS_COUNT=20
+#SBATCH --array=0-39
+TASKS_COUNT=40
 
 import argparse
 import nibabel
@@ -46,8 +46,17 @@ def main():
     print("Task", task_id, "on", socket.gethostname())
     
     with tempfile.TemporaryDirectory() as directory:
+        T1_map = nibabel.load(arguments.T1_map)
+        T2_map = nibabel.load(arguments.T2_map)
+        B1_map = nibabel.load(arguments.B1_map)
         mask = nibabel.load(arguments.mask)
-        mask_data = numpy.asarray(mask.dataobj)
+        
+        mask_data = (
+            numpy.asarray(mask.dataobj) != 0
+            & (T1_map.get_fdata() > 0) & (T1_map.get_fdata() < 2) 
+            & (T2_map.get_fdata() > 0) & (T2_map.get_fdata() < 1) 
+            & (B1_map.get_fdata() > 0.5) & (B1_map.get_fdata() < 1.5))
+        
         mask_indices = numpy.array(mask_data.nonzero())
         sub_mask_size, remainder = divmod(mask_indices.shape[1], TASKS_COUNT)
         sub_mask_counts = numpy.array(TASKS_COUNT*[sub_mask_size])
