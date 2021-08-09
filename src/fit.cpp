@@ -90,17 +90,18 @@ void fit(
         << communicator.rank() << ": "
         << "Done fitting subset" << std::endl;
     
-    if(individuals != nullptr)
-    {
-        gather_blocks(
-            communicator, local_individuals, blocks_count, item_size*population, 
-            individuals);
-    }
-    if(champions != nullptr)
-    {
-        gather_blocks(
-            communicator, local_champions, blocks_count, item_size, champions);
-    }
+    // if(individuals != nullptr)
+    // {
+    //     gather_blocks(
+    //         communicator, local_individuals, blocks_count, item_size*population, 
+    //         individuals);
+    // }
+    // if(champions != nullptr)
+    // {
+    //     gather_blocks(
+    //         communicator, local_champions, blocks_count, item_size, champions);
+    // }
+    communicator.barrier();
 }
 
 void fit(
@@ -138,7 +139,7 @@ void fit(
                 auto const & scaled_dv = final_population.get_x()[index];
                 auto const true_dv = Problem::get_true_dv(scaled_dv);
                 auto const D = Problem::get_diffusion_tensor(true_dv);
-                std::copy(D.data(), D.data()+D.size(), individuals+9*index);
+                // std::copy(D.data(), D.data()+D.size(), individuals+9*index);
             }
         }
         
@@ -147,7 +148,7 @@ void fit(
             auto const & champion_dv = final_population.champion_x();
             auto const true_dv = Problem::get_true_dv(champion_dv);
             auto const D = Problem::get_diffusion_tensor(true_dv);
-            std::copy(D.data(), D.data()+D.size(), champion);
+            // std::copy(D.data(), D.data()+D.size(), champion);
         }
     }
 }
