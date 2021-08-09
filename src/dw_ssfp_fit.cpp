@@ -82,10 +82,6 @@ fit_wrapper(
             
             individuals = pybind11::array_t<double>(shape);
         }
-        else
-        {
-            individuals = pybind11::array_t<double>();
-        }
         
         if(return_champions)
         {
@@ -95,10 +91,6 @@ fit_wrapper(
             shape.push_back(3);
             
             champions = pybind11::array_t<double>(shape);
-        }
-        else
-        {
-            champions = pybind11::array_t<double>();
         }
     }
     
