@@ -21,19 +21,25 @@ void fit(
     int block_size, double * individuals, double * champions)
 {
     // Dispatch the chunks to the workers. 
-    auto DW_SSFP_subset = scatter_blocks(
+    auto const DW_SSFP_subset = scatter_blocks(
         communicator, DW_SSFP, blocks_count, block_size);
-    auto T1_subset = scatter_blocks(communicator, T1_map, blocks_count, 1);
-    auto T2_subset = scatter_blocks(communicator, T2_map, blocks_count, 1);
-    auto B1_subset = scatter_blocks(communicator, B1_map, blocks_count, 1);
+    auto const T1_subset = scatter_blocks(
+        communicator, T1_map, blocks_count, 1);
+    auto const T2_subset = scatter_blocks(
+        communicator, T2_map, blocks_count, 1);
+    auto const B1_subset = scatter_blocks(
+        communicator, B1_map, blocks_count, 1);
     
     auto const subset_blocks_count = DW_SSFP_subset.size()/block_size;
     auto const item_size = 9;
     
+    auto const return_individuals = (individuals!=nullptr);
+    auto const return_champions = (champions!=nullptr);
+
     std::vector<double> local_individuals(
-        individuals!=nullptr?item_size*population*subset_blocks_count:0, 0.);
+        return_individuals?item_size*population*subset_blocks_count:0, 0.);
     std::vector<double> local_champions(
-        champions!=nullptr?item_size*subset_blocks_count:0, 0.);
+        return_champions?item_size*subset_blocks_count:0, 0.);
     for(std::size_t i=0; i<subset_blocks_count; ++i)
     {
         try
@@ -59,8 +65,8 @@ void fit(
                 << " algorithm OK" << std::endl;
             fit(
                 problem, algorithm, population, generations,
-                individuals!=nullptr?local_individuals.data()+item_size*population*i:nullptr,
-                champions!=nullptr?local_champions.data()+item_size*i:nullptr);
+                return_individuals?local_individuals.data()+item_size*population*i:nullptr,
+                return_champions?local_champions.data()+item_size*i:nullptr);
             std::cout 
                 << communicator.rank() << ": "
                 << "item " << i << "/" << subset_blocks_count
