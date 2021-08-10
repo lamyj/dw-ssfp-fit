@@ -28,6 +28,7 @@ void fit(
 void fit(
     Problem const & problem, pagmo::algorithm const & algorithm,
     unsigned int population, unsigned int generations,
-    double * individuals, double * champion);
+    double * individuals, double * champion,
+    boost::mpi::communicator communicator);
 
 #endif // _24f03df8_13d8_489a_b56b_fc8171c71309

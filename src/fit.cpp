@@ -47,26 +47,19 @@ void fit(
             std::vector<double> signals(
                 DW_SSFP_subset.data()+block_size*i, 
                 DW_SSFP_subset.data()+block_size*(i+1));
-            std::cout 
-                << communicator.rank() << ": "
-                << "item " << i << "/" << subset_blocks_count
-                << " signals OK" << std::endl;
             Problem problem{
                 scheme, non_dw, signals, T1_subset[i], T2_subset[i], B1_subset[i],
                 epg_discrete_1d};
-            std::cout 
-                << communicator.rank() << ": "
-                << "item " << i << "/" << subset_blocks_count
-                << " problem OK" << std::endl;
             pagmo::algorithm algorithm{pagmo::de1220{generations}};
             std::cout 
                 << communicator.rank() << ": "
                 << "item " << i << "/" << subset_blocks_count
-                << " algorithm OK" << std::endl;
+                << " starting fit" << std::endl;
             fit(
                 problem, algorithm, population, generations,
                 return_individuals?local_individuals.data()+item_size*population*i:nullptr,
-                return_champions?local_champions.data()+item_size*i:nullptr);
+                return_champions?local_champions.data()+item_size*i:nullptr,
+                communicator);
             std::cout 
                 << communicator.rank() << ": "
                 << "item " << i << "/" << subset_blocks_count
@@ -107,7 +100,8 @@ void fit(
 void fit(
     Problem const & problem, pagmo::algorithm const & algorithm,
     unsigned int population, unsigned int generations,
-    double * individuals, double * champion)
+    double * individuals, double * champion,
+    boost::mpi::communicator communicator)
 {
     pagmo::island island{algorithm, problem, population};
     
@@ -116,6 +110,9 @@ void fit(
     {
         island.evolve();
         island.wait_check();
+        std::cout 
+            << communicator.rank() << ": "
+            << "evolution OK" << std::endl;
     }
     catch(std::exception const & e)
     {
