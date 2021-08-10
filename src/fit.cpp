@@ -145,7 +145,7 @@ void fit(
         
         if(champion != nullptr)
         {
-            auto const & champion_dv = final_population.champion_x();
+            auto const champion_dv = final_population.champion_x();
             auto const true_dv = Problem::get_true_dv(champion_dv);
             auto const D = Problem::get_diffusion_tensor(true_dv);
             // std::copy(D.data(), D.data()+D.size(), champion);
