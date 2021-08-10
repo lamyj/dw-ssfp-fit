@@ -36,10 +36,10 @@ void fit(
     auto const return_individuals = (individuals!=nullptr);
     auto const return_champions = (champions!=nullptr);
 
+    auto const base_size = item_size * subset_blocks_count;
     std::vector<double> local_individuals(
-        return_individuals?item_size*population*subset_blocks_count:0, 0.);
-    std::vector<double> local_champions(
-        return_champions?item_size*subset_blocks_count:0, 0.);
+        return_individuals?base_size*population:0, 0.);
+    std::vector<double> local_champions(return_champions?base_size:0, 0.);
     for(std::size_t i=0; i<subset_blocks_count; ++i)
     {
         try
