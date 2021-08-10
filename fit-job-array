@@ -82,7 +82,8 @@ def main():
                 os.path.basename(arguments.D).split(".", 1)[1]))
         
         subprocess.check_call([
-            "mpirun", "singularity", "exec", arguments.image,
+            "mpirun", "--mca", "orte_base_help_aggregate", "0",
+            "singularity", "exec", arguments.image,
             "python3", "fit.py", 
             "-r", str(arguments.reference),
             "-p", str(arguments.population), "-g", str(arguments.generations),
