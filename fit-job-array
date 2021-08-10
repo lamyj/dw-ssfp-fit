@@ -52,7 +52,7 @@ def main():
         mask = nibabel.load(arguments.mask)
         
         mask_data = (
-            numpy.asarray(mask.dataobj) != 0
+            (numpy.asarray(mask.dataobj) != 0)
             & (T1_map.get_fdata() > 0) & (T1_map.get_fdata() < 2) 
             & (T2_map.get_fdata() > 0) & (T2_map.get_fdata() < 1) 
             & (B1_map.get_fdata() > 0.5) & (B1_map.get_fdata() < 1.5))
