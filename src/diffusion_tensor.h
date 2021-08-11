@@ -46,27 +46,4 @@ Eigen::Matrix3d build_diffusion_tensor(
     double theta, double phi, double psi, 
     double lambda1, double lambda2, double lambda3);
 
-/**
- * @brief Build a second-order diffusion tensor from a representation in 
- *   spherical coordinates, store it in pre-allocated array.
- * 
- * See @ref build_diffusion_tensor(double, double, double, double, double, double)
- * "other definition" for details.
- * 
- * @param theta azimuthal angle in the @f$(x,y)@f$ plane from the @f$x@f$ axis 
- *   (@f$0 \le \theta \le 2\pi@f$)
- * @param phi polar angle from the positive @f$z@f$ axis, also known as 
- *   colatitude or inclination angle (@f$0 \le \phi \le \pi@f$)
- * @param psi rotation angle around the radius vector defined by @f$\theta@f$ 
- *   and @f$\phi@f$ (@f$-\pi \le \psi \le \pi@f$)
- * @param lambda1 largest eigenvalue
- * @param lambda2 second eigenvalue
- * @param lambda3 smallest eigenvalue
- * @param D Array of size 9, managed by caller
- */
-void build_diffusion_tensor(
-    double theta, double phi, double psi, 
-    double lambda1, double lambda2, double lambda3,
-    double * D);
-
 #endif // _c499e45b_1d74_45de_85e3_ab89df0f6de4

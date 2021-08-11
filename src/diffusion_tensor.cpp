@@ -39,13 +39,3 @@ Eigen::Matrix3d build_diffusion_tensor(
     Eigen::Matrix3d const D = V * lambda.asDiagonal() * V.transpose();
     return D;
 }
-
-void build_diffusion_tensor(
-    double theta, double phi, double psi, 
-    double lambda1, double lambda2, double lambda3,
-    double * D)
-{
-    auto const tensor = build_diffusion_tensor(
-        theta, phi, psi, lambda1, lambda2, lambda3);
-    std::copy(tensor.data(), tensor.data()+9, D);
-}

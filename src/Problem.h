@@ -1,7 +1,6 @@
 #ifndef _b62f1e90_b315_4d41_940c_152159958f9e
 #define _b62f1e90_b315_4d41_940c_152159958f9e
 
-#include <functional>
 #include <utility>
 #include <vector>
 #include <pagmo/types.hpp>

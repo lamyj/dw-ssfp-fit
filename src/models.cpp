@@ -113,33 +113,12 @@ double epg_discrete_1d(
         species.get_R1(), species.get_R2(), ADC*std::pow(m, 2)/s);    
     
     int const repetitions = std::max<int>(1, 5*species.get_T1()/acquisition.TR);
-    if(repetitions > 1000000)
-    {
-        std::cerr
-            << "Too many repetitions: " << repetitions << ". "
-            << "Error in simulation (unknown). "
-            << "alpha=" << acquisition.alpha << ", "
-            << "G_diffusion=" << acquisition.G_diffusion << ", "
-            << "tau_diffusion=" << acquisition.tau_diffusion << ", "
-            << "direction=" << acquisition.direction << ", "
-            << "TE=" << acquisition.TE << ", "
-            << "TR=" << acquisition.TR << ", "
-            << "pixel_bandwidth=" << acquisition.pixel_bandwidth << ", "
-            << "resolution=" << acquisition.resolution << ", "
-            << "G_max=" << acquisition.G_max << ", "
-            << "T1=" << species.get_T1() << ", "
-            << "T2=" << species.get_T2() << ", "
-            << "B1=" << B1 << ", "
-            << "D=" << D_
-            << std::endl;
-        return 1e9;
-    }
     std::vector<double> signal;
     signal.reserve(repetitions);
-
+    
     sycomore::epg::Discrete model(isotropic_species, {0,0,1}, 1e-6*rad/m);
     model.threshold = 1e-4;
-
+    
     try
     {
         while(!stable && signal.size() < repetitions)

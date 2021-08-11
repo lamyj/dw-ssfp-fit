@@ -1,8 +1,6 @@
 #include "Problem.h"
 
-#include <functional>
 #include <iostream>
-#include <limits>
 #include <utility>
 #include <vector>
 #include <pagmo/types.hpp>

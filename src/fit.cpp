@@ -4,7 +4,6 @@
 #include <iostream>
 #include <vector>
 #include <boost/mpi/communicator.hpp>
-#include <Eigen/SVD>
 #include <pagmo/algorithm.hpp>
 #include <pagmo/algorithms/de1220.hpp>
 #include <pagmo/island.hpp>
@@ -136,7 +135,7 @@ void fit(
                 auto const & scaled_dv = final_population.get_x()[index];
                 auto const true_dv = Problem::get_true_dv(scaled_dv);
                 auto const D = Problem::get_diffusion_tensor(true_dv);
-                // std::copy(D.data(), D.data()+D.size(), individuals+9*index);
+                std::copy(D.data(), D.data()+D.size(), individuals+9*index);
             }
         }
         
@@ -145,7 +144,7 @@ void fit(
             auto const champion_dv = final_population.champion_x();
             auto const true_dv = Problem::get_true_dv(champion_dv);
             auto const D = Problem::get_diffusion_tensor(true_dv);
-            // std::copy(D.data(), D.data()+D.size(), champion);
+            std::copy(D.data(), D.data()+D.size(), champion);
         }
     }
 }
