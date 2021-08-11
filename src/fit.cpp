@@ -48,7 +48,9 @@ void fit(
                 DW_SSFP_subset.data()+block_size*(i+1));
             Problem problem{
                 scheme, non_dw, signals, T1_subset[i], T2_subset[i], B1_subset[i],
-                epg_discrete_1d};
+                // epg_discrete_1d
+                freed
+            };
             pagmo::algorithm algorithm{pagmo::de1220{generations}};
             std::cout 
                 << communicator.rank() << ": "
