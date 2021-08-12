@@ -132,7 +132,7 @@ double epg_discrete_1d(
             
             model.apply_time_interval(acquisition.ro_minus);
             model.apply_time_interval(acquisition.ro_plus);
-            signal.push_back(0./*std::abs(model.echo())*/);
+            signal.push_back((model.size() > 0) ? std::abs(model.echo()) : 0);
             model.apply_time_interval(acquisition.ro_plus);
             model.apply_time_interval(acquisition.ro_minus);
 
