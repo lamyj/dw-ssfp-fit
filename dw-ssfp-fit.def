@@ -57,7 +57,7 @@ From: debian:buster
   cd build
   cmake \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
-    -DCMAKE_CXX_FLAGS="-march=skylake-avx512 -fno-math-errno -funsafe-math-optimizations -fno-rounding-math -fno-signaling-nans -fcx-limited-range -fexcess-precision=fast -D__FAST_MATH__" \
+    -DCMAKE_CXX_FLAGS="-march=skylake-avx512" \
     -DBUILD_TESTING=OFF -DPYTHON_EXECUTABLE=/usr/bin/python3 \
     ..
   cmake  --build . --target install --parallel
@@ -71,7 +71,7 @@ From: debian:buster
   mkdir build
   cd build
   cmake \
-    -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_CXX_FLAGS="-march=skylake-avx512 -Ofast" \
+    -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_CXX_FLAGS="-march=skylake-avx512" \
     -Dsycomore_DIR=/usr/local/lib/CMake/sycomore \
     ..
   cmake  --build . --target install --parallel
@@ -81,4 +81,3 @@ From: debian:buster
 %environment
   export LD_LIBRARY_PATH=/usr/local/lib
   export PYTHONPATH=/usr/local/lib/python3/dist-packages
-
