@@ -41,111 +41,59 @@ void fit(
     std::vector<double> local_champions(return_champions?base_size:0, 0.);
     for(std::size_t i=0; i<subset_blocks_count; ++i)
     {
-        try
-        {
-            std::vector<double> signals(
-                DW_SSFP_subset.data()+block_size*i, 
-                DW_SSFP_subset.data()+block_size*(i+1));
-            Problem problem{
-                scheme, non_dw, signals, T1_subset[i], T2_subset[i], B1_subset[i],
-                epg_discrete_1d
-            };
-            pagmo::algorithm algorithm{pagmo::de1220{generations}};
-            std::cout 
-                << communicator.rank() << ": "
-                << "item " << i << "/" << subset_blocks_count
-                << " starting fit" << std::endl;
-            fit(
-                problem, algorithm, population, generations,
-                return_individuals?local_individuals.data()+item_size*population*i:nullptr,
-                return_champions?local_champions.data()+item_size*i:nullptr,
-                communicator);
-            std::cout 
-                << communicator.rank() << ": "
-                << "item " << i << "/" << subset_blocks_count
-                << " fit OK" << std::endl;
-        }
-        catch(std::exception & e)
-        {
-            std::cerr 
-                << communicator.rank() << ": "
-                << "Could not fit problem: " << e.what() << std::endl;
-        }
-        catch(...)
-        {
-            std::cerr 
-                << communicator.rank() << ": "
-                << "Could not fit problem (unknown exception)" << std::endl;
-        }
+        std::vector<double> signals(
+            DW_SSFP_subset.data()+block_size*i, 
+            DW_SSFP_subset.data()+block_size*(i+1));
+        Problem problem{
+            scheme, non_dw, signals, T1_subset[i], T2_subset[i], B1_subset[i],
+            epg_discrete_1d};
+        pagmo::algorithm algorithm{pagmo::de1220{generations}};
+        fit(
+            problem, algorithm, population, generations,
+            return_individuals?local_individuals.data()+item_size*population*i:nullptr,
+            return_champions?local_champions.data()+item_size*i:nullptr);
     }
     
-    std::cout 
-        << communicator.rank() << ": "
-        << "Done fitting subset" << std::endl;
-    
-    // if(individuals != nullptr)
-    // {
-    //     gather_blocks(
-    //         communicator, local_individuals, blocks_count, item_size*population, 
-    //         individuals);
-    // }
-    // if(champions != nullptr)
-    // {
-    //     gather_blocks(
-    //         communicator, local_champions, blocks_count, item_size, champions);
-    // }
-    communicator.barrier();
+    if(individuals != nullptr)
+    {
+        gather_blocks(
+            communicator, local_individuals, blocks_count, item_size*population, 
+            individuals);
+    }
+    if(champions != nullptr)
+    {
+        gather_blocks(
+            communicator, local_champions, blocks_count, item_size, champions);
+    }
 }
 
 void fit(
     Problem const & problem, pagmo::algorithm const & algorithm,
     unsigned int population, unsigned int generations,
-    double * individuals, double * champion,
-    boost::mpi::communicator communicator)
+    double * individuals, double * champion)
 {
     pagmo::island island{algorithm, problem, population};
+    island.evolve();
+    island.wait_check();
     
-    bool has_error = false;
-    try
-    {
-        island.evolve();
-        island.wait_check();
-        std::cout 
-            << communicator.rank() << ": "
-            << "evolution OK" << std::endl;
-    }
-    catch(std::exception const & e)
-    {
-        std::cerr << "Error during evolution: " << e.what() << std::endl;
-        has_error = true;
-    }
-    catch(...)
-    {
-        std::cerr << "Error during evolution (unknown)" << std::endl;
-        has_error = true;
-    }
+    auto const final_population = island.get_population();
     
-    if(!has_error)
+    if(individuals != nullptr)
     {
-        auto const final_population = island.get_population();
-        
-        if(individuals != nullptr)
+        for(std::size_t index=0, end=final_population.size(); index!=end; ++index)
         {
-            for(std::size_t index=0, end=final_population.size(); index!=end; ++index)
-            {
-                auto const & scaled_dv = final_population.get_x()[index];
-                auto const true_dv = Problem::get_true_dv(scaled_dv);
-                auto const D = Problem::get_diffusion_tensor(true_dv);
-                std::copy(D.data(), D.data()+D.size(), individuals+9*index);
-            }
-        }
-        
-        if(champion != nullptr)
-        {
-            auto const champion_dv = final_population.champion_x();
-            auto const true_dv = Problem::get_true_dv(champion_dv);
+            auto const & scaled_dv = final_population.get_x()[index];
+            auto const true_dv = Problem::get_true_dv(scaled_dv);
             auto const D = Problem::get_diffusion_tensor(true_dv);
-            std::copy(D.data(), D.data()+D.size(), champion);
+            std::copy(D.data(), D.data()+D.size(), individuals+9*index);
         }
+    }
+    
+    if(champion != nullptr)
+    {
+        auto const champion_dv = final_population.champion_x();
+        auto const true_dv = Problem::get_true_dv(champion_dv);
+        auto const D = Problem::get_diffusion_tensor(true_dv);
+        std::copy(D.data(), D.data()+D.size(), champion);
     }
 }
