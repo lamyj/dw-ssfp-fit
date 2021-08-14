@@ -1,12 +1,15 @@
 #ifndef _b62f1e90_b315_4d41_940c_152159958f9e
 #define _b62f1e90_b315_4d41_940c_152159958f9e
 
+#include <memory>
 #include <utility>
 #include <vector>
 #include <pagmo/types.hpp>
 #include <sycomore/Species.h>
 
 #include "Acquisition.h"
+
+#include <fstream>
 
 /// @brief Description of the optimization problem in Pagmo2.
 class Problem
@@ -39,6 +42,8 @@ public:
     
     /// @brief Simulation function (see @ref Simulator for parameters).
     Simulator simulator;
+    
+    std::ofstream * stream;
     
     Problem() = default;
     Problem(Problem const &) = default;

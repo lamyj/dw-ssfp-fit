@@ -1,6 +1,5 @@
 #include "Problem.h"
 
-#include <fstream>
 #include <utility>
 #include <vector>
 #include <pagmo/types.hpp>
@@ -41,18 +40,11 @@ Problem
 ::fitness(pagmo::vector_double const & scaled_dv) const
 {
     using namespace sycomore::units;
-    using namespace std::string_literals;
     
     auto const true_dv = Problem::get_true_dv(scaled_dv);
     auto const D = Problem::get_diffusion_tensor(true_dv);
     
-    std::ofstream stream(
-        std::getenv("SLURM_SUBMIT_DIR") + "/"s 
-            + std::getenv("SLURM_ARRAY_TASK_ID") + "_"s 
-            + std::getenv("OMPI_COMM_WORLD_LOCAL_RANK"),
-        std::ios::out | std::ios::app);
-    
-    stream
+    (*this->stream)
         << this->T1 << " " << this->T2 << " " << this->B1 << " "
         << D
         << std::endl;
@@ -104,7 +96,7 @@ Problem
         residuals += std::abs(simulated_signal-measured_signal);
     }
     
-    stream << "done" << std::endl;
+    (*this->stream) << "done" << std::endl;
     
     // Normalize by number of acquisition.
     return {residuals/(this->scheme.size()-1)};
