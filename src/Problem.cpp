@@ -44,10 +44,10 @@ Problem
     auto const true_dv = Problem::get_true_dv(scaled_dv);
     auto const D = Problem::get_diffusion_tensor(true_dv);
     
-    (*this->stream)
-        << this->T1 << " " << this->T2 << " " << this->B1 << " "
-        << D
-        << std::endl;
+    // (*this->stream)
+    //     << this->T1 << " " << this->T2 << " " << this->B1 << " "
+    //     << D
+    //     << std::endl;
     
     
     auto const & non_dw_acquisition = this->scheme[this->non_dw_index];
@@ -96,7 +96,7 @@ Problem
         residuals += std::abs(simulated_signal-measured_signal);
     }
     
-    (*this->stream) << "done" << std::endl;
+    // (*this->stream) << "done" << std::endl;
     
     // Normalize by number of acquisition.
     return {residuals/(this->scheme.size()-1)};
