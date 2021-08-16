@@ -1,19 +1,14 @@
 #!/usr/bin/env python3
-#SBATCH --job-name=DW_SSFP
-#SBATCH --ntasks=24
-
-# WARNING: these two *must* match
-#SBATCH --array=0-39
-TASKS_COUNT=40
 
 import argparse
-import nibabel
-import numpy
 import os
 import socket
 import subprocess
 import sys
 import tempfile
+
+import nibabel
+import numpy
 
 def main():
     parser = argparse.ArgumentParser(
@@ -42,8 +37,20 @@ def main():
         help="Number of generations")
     arguments = parser.parse_args()
     
+    try:
+        task_min, task_max, task_step = [
+            int(os.environ["SLURM_ARRAY_TASK_{}".format(x)])
+            for x in ["MIN", "MAX", "STEP"]]
+    except KeyError:
+        parser.error(
+            "Missing environment variables: "
+            "this must be run as a Slurm task array")
+    if task_min != 0 or task_step != 1:
+        parser.error("Task array must be of the form 0-N")
+    task_count = 1+(task_max-task_min)
+    
     task_id = int(os.environ["SLURM_ARRAY_TASK_ID"])
-    print("Task", task_id, "on", socket.gethostname())
+    print("Task {}/{} on {}".format(task_id, task_count, socket.gethostname()))
     
     with tempfile.TemporaryDirectory() as directory:
         T1_map = nibabel.load(arguments.T1_map)
@@ -58,8 +65,8 @@ def main():
             & (B1_map.get_fdata() > 0.5) & (B1_map.get_fdata() < 1.5))
         
         mask_indices = numpy.array(mask_data.nonzero())
-        sub_mask_size, remainder = divmod(mask_indices.shape[1], TASKS_COUNT)
-        sub_mask_counts = numpy.array(TASKS_COUNT*[sub_mask_size])
+        sub_mask_size, remainder = divmod(mask_indices.shape[1], task_count)
+        sub_mask_counts = numpy.array(task_count*[sub_mask_size])
         sub_mask_counts[:remainder] += 1
         sub_mask_offsets = numpy.hstack([[0], sub_mask_counts[:-1].cumsum()])
         
@@ -82,7 +89,7 @@ def main():
                 os.path.basename(arguments.D).split(".", 1)[1]))
         
         subprocess.check_call([
-            "mpirun", "--mca", "orte_base_help_aggregate", "0",
+            "mpirun",
             "singularity", "exec", arguments.image,
             "python3", "fit.py", 
             "-r", str(arguments.reference),
