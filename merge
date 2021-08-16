@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+
+import argparse
+import sys
+
+import nibabel
+import numpy
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("inputs", metavar="input", nargs="+")
+    parser.add_argument("output")
+    arguments = parser.parse_args()
+    
+    images = [nibabel.load(x) for x in arguments.inputs]
+    if not all(x.shape == images[0].shape for x in images):
+        parser.error("Image shapes mismatch")
+    
+    D_data = numpy.sum([x.get_fdata() for x in images], axis=0)
+    nibabel.save(nibabel.Nifti1Image(D_data, images[0].affine), arguments.output)
+
+if __name__ == "__main__":
+    sys.exit(main())
