@@ -121,25 +121,25 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
     
     pybind11::class_<Acquisition>(_dw_ssfp_fit, "Acquisition")
         .def(pybind11::init<
-                sycomore::Quantity, 
-                sycomore::Quantity, sycomore::Quantity, Eigen::Vector3d, 
-                sycomore::Quantity, sycomore::Quantity, 
-                sycomore::Quantity, sycomore::Quantity, sycomore::Quantity>(),
-            "alpha"_a=0*rad,
-            "G_diffusion"_a=0*T/m, "tau_diffusion"_a=0*s,
-                "direction"_a=Eigen::Vector3d{1,0,0},
-            "TE"_a=0*s, "TR"_a=0*s,
-            "pixel_bandwidth"_a=0*Hz, "resolution"_a=0*m, "G_max"_a=0*T/m)
+                sycomore::Quantity, sycomore::Quantity, sycomore::Quantity, 
+                Eigen::Vector3d, sycomore::Quantity, sycomore::Quantity, 
+                sycomore::Quantity, Eigen::Vector2i,
+                sycomore::Array<sycomore::Quantity>, 
+                unsigned int, sycomore::Quantity>(),
+            "alpha"_a=0*rad, "G_diffusion"_a=0*T/m, "tau_diffusion"_a=0*s,
+            "direction"_a=Eigen::Vector3d{1,0,0}, "TE"_a=0*s, "TR"_a=0*s,
+            "pixel_bandwidth"_a=0*Hz, "shape"_a=Eigen::Vector2i{0,0},
+            "FOV"_a=sycomore::Array<sycomore::Quantity>{0*m,0*m},
+            "train_length"_a=0, "G_max"_a=0*T/m)
         .def(pybind11::init<
-                double, 
-                double, double, Eigen::Vector3d, 
-                double, double, 
-                double, double, double>(),
-            "alpha"_a=0,
-            "G_diffusion"_a=0, "tau_diffusion"_a=0,
-                "direction"_a=Eigen::Vector3d{1,0,0},
-            "TE"_a=0, "TR"_a=0,
-            "pixel_bandwidth"_a=0, "resolution"_a=0, "G_max"_a=0)
+                double, double, double,
+                Eigen::Vector3d, double, double, 
+                double, Eigen::Vector2i, 
+                Eigen::Vector2d, unsigned int, double>(),
+            "alpha"_a=0, "G_diffusion"_a=0, "tau_diffusion"_a=0,
+            "direction"_a=Eigen::Vector3d{1,0,0}, "TE"_a=0, "TR"_a=0,
+            "pixel_bandwidth"_a=0, "shape"_a=Eigen::Vector2i{0,0}, 
+            "FOV"_a=Eigen::Vector2d{0,0}, "train_length"_a=0, "G_max"_a=0)
         .def_readwrite("alpha", &Acquisition::alpha)
         .def_readwrite("G_diffusion", &Acquisition::G_diffusion)
         .def_readwrite("tau_diffusion", &Acquisition::tau_diffusion)
@@ -147,11 +147,16 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
         .def_readwrite("TE", &Acquisition::TE)
         .def_readwrite("TR", &Acquisition::TR)
         .def_readwrite("pixel_bandwidth", &Acquisition::pixel_bandwidth)
-        .def_readwrite("resolution", &Acquisition::resolution)
+        .def_readwrite("shape", &Acquisition::shape)
+        .def_readwrite("FOV", &Acquisition::FOV)
+        .def_readwrite("train_length", &Acquisition::train_length)
         .def_readwrite("G_max", &Acquisition::G_max)
         .def_readwrite("diffusion", &Acquisition::diffusion)
-        .def_readwrite("ro_plus", &Acquisition::ro_plus)
-        .def_readwrite("ro_minus", &Acquisition::ro_minus)
+        .def_readwrite("idle", &Acquisition::idle)
+        .def_readwrite("readout_preparation", &Acquisition::readout_preparation)
+        .def_readwrite("half_readout", &Acquisition::half_readout)
+        .def_readwrite("phase_blip", &Acquisition::phase_blip)
+        .def_readwrite("readout_rewind", &Acquisition::readout_rewind)
         .def_readwrite("end_of_TR", &Acquisition::end_of_TR);
     
     _dw_ssfp_fit.def("freed", &freed, "species"_a, "acquisition"_a, "B1"_a);

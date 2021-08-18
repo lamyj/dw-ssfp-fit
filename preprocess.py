@@ -93,7 +93,9 @@ class DW_SSFP_metadata(spire.Task):
                     "TE": (meta_data["EchoTime"][0]*ms).convert_to(s), 
                     "TR": (meta_data["RepetitionTime"][0]*ms).convert_to(s),
                     "pixel_bandwidth": (meta_data["PixelBandwidth"][0]*Hz).convert_to(Hz), 
-                    "resolution": (image.header["pixdim"][1]*mm).convert_to(m),
+                    "train_length": protocol.train_length,
+                    "shape": protocol.shape,
+                    "FOV": [x.convert_to(m) for x in protocol.FOV],
                     "G_max": (25*mT/m).convert_to(T/m)
                 })
         

@@ -90,20 +90,82 @@ double freed(
     return -b_minus_1;
 }
 
+// NOTE: the diffusion_gradient argument is mandated by the fact that 
+// Acquisition always holds a 3D specification which is not compatible with
+// the 1D EPG model.
+template<typename Model, typename DiffusionGradient>
+void single_repetition(
+    Model & model, Acquisition const & acquisition,
+    DiffusionGradient const & diffusion_gradient, double B1,
+    std::vector<double> & signal)
+{
+    auto const remainder = acquisition.train_length%2;
+    
+    model.apply_pulse(acquisition.alpha*B1);
+        
+    model.apply_time_interval(acquisition.idle);
+    model.apply_time_interval(
+        acquisition.tau_diffusion, diffusion_gradient);
+    model.apply_time_interval(acquisition.idle);
+    
+    int polarity = +1;
+    
+    model.apply_time_interval(acquisition.readout_preparation);
+    
+    int const half_lines = (acquisition.train_length-remainder)/2;
+    for(int line=0; line!=half_lines; ++line)
+    {
+        model.apply_time_interval(acquisition.half_readout.at(polarity));
+        model.apply_time_interval(acquisition.half_readout.at(polarity));
+        model.apply_time_interval(acquisition.phase_blip);
+        polarity *= -1;
+    }
+    if(remainder != 0)
+    {
+        model.apply_time_interval(acquisition.half_readout.at(polarity));
+    }
+    
+    // FIXME is this correct for an even EPI factor?
+    signal.push_back(std::abs(model.echo()));
+    
+    if(remainder != 0)
+    {
+        model.apply_time_interval(acquisition.half_readout.at(polarity));
+        polarity *= -1;
+        if(acquisition.train_length > 1)
+        {
+            model.apply_time_interval(acquisition.phase_blip);
+        }
+    }
+    for(int line=0; line!=half_lines; ++line)
+    {
+        model.apply_time_interval(acquisition.half_readout.at(polarity));
+        model.apply_time_interval(acquisition.half_readout.at(polarity));
+        if(line != half_lines-1)
+        {
+            model.apply_time_interval(acquisition.phase_blip);
+        }
+        polarity *= -1;
+    }
+    model.apply_time_interval(acquisition.readout_rewind);
+    
+    model.apply_time_interval(acquisition.end_of_TR);
+}
+
 double epg_discrete_1d(
     sycomore::Species const & species,
     Acquisition const & acquisition, double B1)
 {
     using namespace sycomore::units;
-
-    bool stable=false;
     
+    // WARNING: this considers a *single* ADC, while the ADC will change with
+    // the direction of the applied gradient.
     Eigen::Matrix3d D_;
     for(unsigned int row=0; row<3; ++row)
     {
         for(unsigned int col=0; col<3; ++col)
         {
-            D_(row, col) = species.get_D()[3*row + col].convert_to(std::pow(m, 2)/s);
+            D_(row, col) = species.get_D()[3*row + col].convert_to(m*m/s);
         }
     }
     double const ADC = 
@@ -118,23 +180,12 @@ double epg_discrete_1d(
     sycomore::epg::Discrete model(isotropic_species, {0,0,1}, 1e-6*rad/m);
     model.threshold = 1e-4;
     
+    bool stable=false;
     while(!stable && signal.size() < repetitions)
     {
-        model.apply_pulse(acquisition.alpha*B1);
+        single_repetition(
+            model, acquisition, acquisition.G_diffusion, B1, signal);
         
-        model.apply_time_interval(acquisition.idle);
-        model.apply_time_interval(
-            acquisition.tau_diffusion, acquisition.G_diffusion);
-        model.apply_time_interval(acquisition.idle);
-        
-        model.apply_time_interval(acquisition.ro_minus);
-        model.apply_time_interval(acquisition.ro_plus);
-        signal.push_back(std::abs(model.echo()));
-        model.apply_time_interval(acquisition.ro_plus);
-        model.apply_time_interval(acquisition.ro_minus);
-
-        model.apply_time_interval(acquisition.end_of_TR);
-
         if(signal.size() > 20)
         {
             auto const begin = signal.end()-20;
@@ -171,22 +222,12 @@ double epg_discrete_3d(
     signal.reserve(repetitions);
 
     sycomore::epg::Discrete3D model(species, {0,0,1}, 1e-6*rad/m);
-
+    
     while(signal.size() < repetitions)
     {
-        model.apply_pulse(acquisition.alpha*B1);
-        
-        model.apply_time_interval(acquisition.idle);
-        model.apply_time_interval(acquisition.diffusion);
-        model.apply_time_interval(acquisition.idle);
-        
-        model.apply_time_interval(acquisition.ro_minus);
-        model.apply_time_interval(acquisition.ro_plus);
-        signal.push_back(std::abs(model.echo()));
-        model.apply_time_interval(acquisition.ro_plus);
-        model.apply_time_interval(acquisition.ro_minus);
-
-        model.apply_time_interval(acquisition.end_of_TR);
+        single_repetition(
+            model, acquisition, acquisition.diffusion.get_gradient_amplitude(),
+            B1, signal);
     }
     
     auto const begin = signal.end()-20;

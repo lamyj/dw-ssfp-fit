@@ -1,7 +1,9 @@
 #ifndef _656a810d_dca3_413b_9208_d1924c3aea92
 #define _656a810d_dca3_413b_9208_d1924c3aea92
 
+#include <map>
 #include <Eigen/Core>
+#include <sycomore/Array.h>
 #include <sycomore/Quantity.h>
 #include <sycomore/TimeInterval.h>
 
@@ -29,16 +31,24 @@ struct Acquisition
     /// @brief Per-pixel bandwidth.
     sycomore::Quantity pixel_bandwidth;
     
-    /// @brief In-plane resolution assumed isotropic.
-    sycomore::Quantity resolution;
+    /// @brief Shape of the k-space matrix as @f$(k_x, k_y)@f$.
+    Eigen::Vector2i shape;
+    
+    /// @brief Field-of-view along @f$(k_x, k_y)@f$.
+    sycomore::Array<sycomore::Quantity> FOV;
+    
+    /// @brief Number of echoes
+    unsigned int train_length;
     
     /// @brief Maximum amplitude of the gradient system.
     sycomore::Quantity G_max;
     
     sycomore::TimeInterval diffusion;
     sycomore::TimeInterval idle;
-    sycomore::TimeInterval ro_plus;
-    sycomore::TimeInterval ro_minus;
+    sycomore::TimeInterval readout_preparation;
+    std::map<int, sycomore::TimeInterval> half_readout;
+    sycomore::TimeInterval phase_blip;
+    sycomore::TimeInterval readout_rewind;
     sycomore::TimeInterval end_of_TR;
     
     Acquisition(
@@ -46,14 +56,16 @@ struct Acquisition
         sycomore::Quantity G_diffusion, sycomore::Quantity tau_diffusion, 
             Eigen::Vector3d direction,
         sycomore::Quantity TE, sycomore::Quantity TR,
-        sycomore::Quantity pixel_bandwidth, sycomore::Quantity resolution,
-        sycomore::Quantity G_max);
+        sycomore::Quantity pixel_bandwidth, 
+        Eigen::Vector2i shape, sycomore::Array<sycomore::Quantity> FOV,
+        unsigned int train_length, sycomore::Quantity G_max);
     
     Acquisition(
         double alpha, 
         double G_diffusion, double tau_diffusion, Eigen::Vector3d direction,
         double TE, double TR,
-        double pixel_bandwidth, double resolution, double G_max);
+        double pixel_bandwidth, Eigen::Vector2i shape, Eigen::Vector2d FOV,
+        unsigned int train_length, double G_max);
     
     Acquisition(Acquisition const &) = default;
     Acquisition(Acquisition &&) = default;

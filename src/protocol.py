@@ -11,6 +11,17 @@ class Protocol(object):
         protocol = dicomifier.dicom_to_nifti.siemens.parse_ascconv(
             csa["MrPhoenixProtocol"][0])
         
+        self.train_length = protocol["sFastImaging"]["lEPIFactor"]
+        # WARNING: this implies no partial Fourier and no oversampling.
+        self.shape = [
+            protocol["sKSpace"]["lBaseResolution"],
+            int(
+                protocol["sKSpace"]["lPhaseEncodingLines"]
+                * protocol["sKSpace"]["dPhaseResolution"])]
+        self.FOV = [
+            protocol["sSliceArray"]["asSlice"][0][x]*mm
+            for x in ["dReadoutFOV", "dPhaseFOV"]]
+        
         # TODO Phase Correction, Echo Shifting / alFree[5], alFree[6]
         # TODO adFree[0] (tau_diffusion in seconds?)
         
