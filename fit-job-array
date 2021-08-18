@@ -63,6 +63,8 @@ def main():
         sub_mask_counts[:remainder] += 1
         sub_mask_offsets = numpy.hstack([[0], sub_mask_counts[:-1].cumsum()])
         
+        print("{} voxels in task".format(sub_mask_counts[task_id]))
+        
         sub_mask_data = numpy.zeros_like(mask_data, int)
         task_indices = mask_indices[
             :,

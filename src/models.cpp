@@ -1,7 +1,6 @@
 #include "models.h"
 
 #include <cmath>
-#include <iostream>
 
 #include <Eigen/Core>
 #include <sycomore/epg/Discrete.h>

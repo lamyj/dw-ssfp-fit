@@ -43,8 +43,6 @@ public:
     /// @brief Simulation function (see @ref Simulator for parameters).
     Simulator simulator;
     
-    std::ofstream * stream;
-    
     Problem() = default;
     Problem(Problem const &) = default;
     Problem(Problem &&) = default;

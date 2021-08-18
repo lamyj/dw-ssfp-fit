@@ -1,6 +1,7 @@
 #include "fit.h"
 
 #include <algorithm>
+#include <iostream>
 #include <vector>
 #include <boost/mpi/communicator.hpp>
 #include <pagmo/algorithm.hpp>
@@ -10,10 +11,6 @@
 #include "dispatch.h"
 #include "models.h"
 #include "Problem.h"
-
-// #include <cstdlib>
-// #include <fstream>
-// #include <iostream>
 
 void fit(
     std::vector<Acquisition> const & scheme, unsigned int non_dw, 
@@ -38,32 +35,27 @@ void fit(
     auto const return_individuals = (individuals!=nullptr);
     auto const return_champions = (champions!=nullptr);
     
-    // using namespace std::string_literals;
-    // std::ofstream stream(
-    //     std::getenv("SLURM_SUBMIT_DIR") + "/"s 
-    //         + std::getenv("SLURM_ARRAY_TASK_ID") + "_"s 
-    //         + std::getenv("OMPI_COMM_WORLD_LOCAL_RANK"));
-
     auto const base_size = item_size * subset_blocks_count;
     std::vector<double> local_individuals(
         return_individuals?base_size*population:0, 0.);
     std::vector<double> local_champions(return_champions?base_size:0, 0.);
     for(std::size_t i=0; i<subset_blocks_count; ++i)
     {
-        // stream << "Voxel " << i << " started" << std::endl;
         std::vector<double> signals(
             DW_SSFP_subset.data()+block_size*i, 
             DW_SSFP_subset.data()+block_size*(i+1));
         Problem problem{
             scheme, non_dw, signals, T1_subset[i], T2_subset[i], B1_subset[i],
-            epg_discrete_1d,
-            nullptr/*&stream*/};
+            epg_discrete_1d};
         pagmo::algorithm algorithm{pagmo::de1220{generations}};
         fit(
             problem, algorithm, population, generations,
             return_individuals?local_individuals.data()+item_size*population*i:nullptr,
             return_champions?local_champions.data()+item_size*i:nullptr);
-        // stream << "Voxel " << i << " done" << std::endl;
+        std::cout
+            << "Rank " << communicator.rank() << ": "
+            << "voxel " << i << "/" << subset_blocks_count << " done"
+            << std::endl;
     }
     
     if(individuals != nullptr)
