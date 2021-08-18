@@ -12,7 +12,9 @@ import numpy
 
 def main():
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        description="Split the fit across chunks defined by the mask and "
+            "acceptable values of T1, T2, and B1. This script must be run "
+            "through a Slurm array of tasks.")
     
     parser.add_argument("image", help="Path to the singularity image")
     parser.add_argument("scheme", help="Path to the acquisition scheme")
@@ -23,6 +25,7 @@ def main():
         "T2_map", help="Path to the T2 map image, must be in seconds")
     parser.add_argument("B1_map", help="Path to the relative B1 map image")
     parser.add_argument("mask", help="Path to the mask image")
+    parser.add_argument("chunks_count", type=int, help="Number of chunks")
     parser.add_argument("D", help="Path to the output diffusion tensor image")
     
     parser.add_argument(
@@ -37,17 +40,7 @@ def main():
         help="Number of generations")
     arguments = parser.parse_args()
     
-    try:
-        task_min, task_max, task_step = [
-            int(os.environ["SLURM_ARRAY_TASK_{}".format(x)])
-            for x in ["MIN", "MAX", "STEP"]]
-    except KeyError:
-        parser.error(
-            "Missing environment variables: "
-            "this must be run as a Slurm task array")
-    if task_min != 0 or task_step != 1:
-        parser.error("Task array must be of the form 0-N")
-    task_count = 1+(task_max-task_min)
+    task_count = arguments.chunks_count
     
     task_id = int(os.environ["SLURM_ARRAY_TASK_ID"])
     print("Task {}/{} on {}".format(task_id, task_count, socket.gethostname()))
