@@ -87,17 +87,21 @@ void fit(
         for(std::size_t index=0, end=final_population.size(); index!=end; ++index)
         {
             auto const & scaled_dv = final_population.get_x()[index];
-            auto const true_dv = Problem::get_true_dv(scaled_dv);
-            auto const D = Problem::get_diffusion_tensor(true_dv);
-            std::copy(D.data(), D.data()+D.size(), individuals+9*index);
+            auto const true_dv = problem.get_true_dv(scaled_dv);
+            auto const D = problem.get_diffusion_tensor(true_dv);
+            std::transform(
+                D.begin(), D.end(), individuals+9*index,
+                [](auto const & q) { return q.magnitude; } );
         }
     }
     
     if(champion != nullptr)
     {
         auto const champion_dv = final_population.champion_x();
-        auto const true_dv = Problem::get_true_dv(champion_dv);
-        auto const D = Problem::get_diffusion_tensor(true_dv);
-        std::copy(D.data(), D.data()+D.size(), champion);
+        auto const true_dv = problem.get_true_dv(champion_dv);
+        auto const D = problem.get_diffusion_tensor(true_dv);
+        std::transform(
+            D.begin(), D.end(), champion,
+            [](auto const & q) { return q.magnitude; } );
     }
 }
