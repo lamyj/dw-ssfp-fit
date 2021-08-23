@@ -1,33 +1,45 @@
 #ifndef _24f03df8_13d8_489a_b56b_fc8171c71309
 #define _24f03df8_13d8_489a_b56b_fc8171c71309
 
+#include <span>
 #include <vector>
+
 #include <boost/mpi/communicator.hpp>
-#include <pagmo/algorithm.hpp>
-#include "Problem.h"
+
+#include "Acquisition.h"
 
 /// @file
 
 /**
  * @brief Dispatch fitting jobs to an MPI communicator.
  *
- * @warning result must be large enough to store the populations of all jobs.
+ * @warning result structures must be allocated by the caller.
  */
 void fit(
     std::vector<Acquisition> const & scheme, unsigned int non_dw, 
-    double const * DW_SSFP, double const * T1_map, double const * T2_map,
-    double const * B1_map, boost::mpi::communicator communicator,
-    unsigned int population, unsigned int generations, std::size_t blocks_count,
-    int block_size, double * individuals, double * champions);
+    std::span<double const> DW_SSFP, std::span<double const> B1_map,
+    std::span<double const> T1_map, std::span<double const> T2_map,
+    unsigned int population, unsigned int generations,
+    std::span<double> champions_D, std::span<double> champions_T1,
+        std::span<double> champions_T2,
+    std::span<double> individuals_D, std::span<double> individuals_T1,
+        std::span<double> individuals_T2,
+    boost::mpi::communicator communicator);
 
 /**
- * @brief Fit a single voxel, store the result in user-provided array.
+ * @brief Fit a region in a single process, store the result in user-provided
+ * array.
  *
- * @warning result array must be large enough to store the whole population.
+ * @warning result structures must be allocated by the caller.
  */
 void fit(
-    Problem const & problem, pagmo::algorithm const & algorithm,
+    std::vector<Acquisition> const & scheme, unsigned int non_dw, 
+    std::span<double const> DW_SSFP, std::span<double const> B1_map,
+    std::span<double const> T1_map, std::span<double const> T2_map,
     unsigned int population, unsigned int generations,
-    double * individuals, double * champion);
+    std::span<double> champions_D, std::span<double> champions_T1,
+        std::span<double> champions_T2,
+    std::span<double> individuals_D, std::span<double> individuals_T1,
+        std::span<double> individuals_T2);
 
 #endif // _24f03df8_13d8_489a_b56b_fc8171c71309

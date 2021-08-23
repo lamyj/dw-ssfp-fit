@@ -2,13 +2,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <span>
+#include <stdexcept>
 #include <utility>
 #include <vector>
-
-#if BOOST_VERSION <= 106900
-// Compile error due to scoping error.
-using namespace boost::mpi::detail;
-#endif
 
 #include <boost/mpi/collectives.hpp>
 #include <boost/mpi/communicator.hpp>
@@ -51,48 +48,63 @@ compute_chunks(
     return {subset_sizes, offsets};
 }
 
-std::vector<double>
-scatter_blocks(
+std::span<double> scatter_blocks(
     boost::mpi::communicator const & communicator,
-    double const * data, std::size_t blocks_count, int block_size)
+    std::span<double> const & source, unsigned int block_size)
 {
+    if(source.empty())
+    {
+        return std::span<double>();
+    }
+    
     std::vector<int> subset_sizes(communicator.size());
     std::vector<int> offsets(communicator.size());
     if(communicator.rank() == 0)
     {
+        if(source.size() % block_size != 0)
+        {
+            throw std::runtime_error(
+                "source size must be divisible by block size");
+        }
         std::tie(subset_sizes, offsets) = 
-            compute_chunks(communicator, blocks_count, block_size);
+            compute_chunks(communicator, source.size()/block_size, block_size);
     }
     boost::mpi::broadcast(
         communicator, subset_sizes.data(), subset_sizes.size(), 0);
     boost::mpi::broadcast(communicator, offsets.data(), offsets.size(), 0);
     
-    std::vector<double> subset(subset_sizes[communicator.rank()]);
-    // NOTE: if data is empty (the case on ranks ≠ 0), then sizes must also be
+    auto const size = subset_sizes[communicator.rank()];
+    std::span<double> span(new double[size], size);
+    // NOTE: if source is empty (the case on ranks ≠ 0), then sizes must also be
     // empty
     boost::mpi::scatterv(
-        communicator, data,
-        (data==nullptr)?std::vector<int>():subset_sizes, offsets, 
-        subset.data(), subset.size(), 0);
-    
-    return subset;
+        communicator, source.data(),
+        source.empty()?decltype(subset_sizes)():subset_sizes, span.data(), 0);
+    return span;
 }
 
 void gather_blocks(
     boost::mpi::communicator const & communicator,
-    std::vector<double> const & subset, int blocks_count, int block_size, 
-    double * result)
+    std::span<double> const & source, std::span<double> & destination,
+    unsigned int block_size)
 {
     std::vector<int> subset_sizes(communicator.size());
     std::vector<int> offsets(communicator.size());
     if(communicator.rank() == 0)
     {
+        if(source.size() % block_size != 0)
+        {
+            throw std::runtime_error(
+                "source size must be divisible by block size");
+        }
         std::tie(subset_sizes, offsets) = 
-            compute_chunks(communicator, blocks_count, block_size);
+            compute_chunks(communicator, source.size()/block_size, block_size);
     }
     boost::mpi::broadcast(
         communicator, subset_sizes.data(), subset_sizes.size(), 0);
     boost::mpi::broadcast(communicator, offsets.data(), offsets.size(), 0);
     
-    boost::mpi::gatherv(communicator, subset, result, subset_sizes, offsets, 0);
+    boost::mpi::gatherv(
+        communicator, source.data(), source.size(), destination.data(),
+        subset_sizes, 0);
 }

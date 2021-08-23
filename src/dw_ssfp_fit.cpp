@@ -1,6 +1,6 @@
+#include <stdexcept>
 #include <vector>
 
-#include <boost/mpi/collectives.hpp>
 #include <boost/mpi/communicator.hpp>
 #include <mpi4py/mpi4py.h>
 #include <pybind11/eigen.h>
@@ -17,7 +17,8 @@
 namespace pybind11 { namespace detail {
 
 template<>
-struct type_caster<boost::mpi::communicator> {
+struct type_caster<boost::mpi::communicator>
+{
 public:
     PYBIND11_TYPE_CASTER(boost::mpi::communicator, _("communicator"));
     bool load(handle src, bool)
@@ -38,75 +39,75 @@ public:
 pybind11::tuple
 fit_wrapper(
     std::vector<Acquisition> const & scheme, unsigned int non_dw, 
-    pybind11::array_t<double> DW_SSFP, pybind11::array_t<double> T1_map,
-    pybind11::array_t<double> T2_map, pybind11::array_t<double> B1_map,
+    pybind11::array_t<double> DW_SSFP, pybind11::array_t<double> B1_map,
+    pybind11::array_t<double> T1_map, pybind11::array_t<double> T2_map,
     boost::mpi::communicator communicator,
     unsigned int population, unsigned int generations,
     bool return_individuals, bool return_champions)
 {
     using namespace std::string_literals;
     
-    std::size_t blocks_count;
-    int block_size;
-    pybind11::array_t<double> individuals, champions;
+    pybind11::array_t<double> champions_D, champions_T1, champions_T2;
+    pybind11::array_t<double> individuals_D, individuals_T1, individuals_T2;
     
     if(communicator.rank() == 0)
     {
-        for(auto && item: {
-            std::make_pair("T1_map", T1_map), std::make_pair("T2_map", T2_map),
-            std::make_pair("B1_map", B1_map)})
+        std::vector<int> const champions_shape(
+            DW_SSFP.shape(), DW_SSFP.shape()+DW_SSFP.ndim()-1);
+        
+        auto champions_shape_D{champions_shape};
+        champions_shape_D.push_back(3);
+        champions_shape_D.push_back(3);
+        champions_D = pybind11::array_t<double>(champions_shape_D);
+        
+        if(T1_map.size() == 0)
         {
-            if(DW_SSFP.ndim() != 1+item.second.ndim())
-            {
-                throw std::runtime_error("ndim mismatch: "s + item.first);
-            }
-            for(int i=0, end=item.second.ndim(); i!=end; ++i)
-            {
-                if(DW_SSFP.shape(i) != item.second.shape(i))
-                {
-                    throw std::runtime_error("shape mismatch: "s + item.first);
-                }
-            }
+            champions_T1 = pybind11::array_t<double>(champions_shape);
         }
         
-        block_size = DW_SSFP.shape(DW_SSFP.ndim()-1);
-        blocks_count = DW_SSFP.size() / block_size;
+        if(T2_map.size() == 0)
+        {
+            champions_T2 = pybind11::array_t<double>(champions_shape);
+        }
         
         if(return_individuals)
         {
-            std::vector<int> shape(
-                DW_SSFP.shape(), DW_SSFP.shape()+DW_SSFP.ndim()-1);
-            shape.push_back(population);
-            shape.push_back(3);
-            shape.push_back(3);
+            auto individuals_shape(champions_shape);
+            individuals_shape.push_back(population);
             
-            individuals = pybind11::array_t<double>(shape);
-        }
-        
-        if(return_champions)
-        {
-            std::vector<int> shape(
-                DW_SSFP.shape(), DW_SSFP.shape()+DW_SSFP.ndim()-1);
-            shape.push_back(3);
-            shape.push_back(3);
+            auto individuals_shape_D(individuals_shape);
+            individuals_shape_D.push_back(3);
+            individuals_shape_D.push_back(3);
+            individuals_D = pybind11::array_t<double>(individuals_shape_D);
             
-            champions = pybind11::array_t<double>(shape);
+            if(T1_map.size() == 0)
+            {
+                individuals_T1 = pybind11::array_t<double>(individuals_shape);
+            }
+            
+            if(T2_map.size() == 0)
+            {
+                individuals_T2 = pybind11::array_t<double>(individuals_shape);
+            }
         }
     }
     
-    boost::mpi::broadcast(communicator, blocks_count, 0);
-    boost::mpi::broadcast(communicator, block_size, 0);
-    
     fit(
-        scheme, non_dw, DW_SSFP.data(), T1_map.data(), T2_map.data(),
-        B1_map.data(), communicator, population, generations, blocks_count, 
-        block_size, 
-        return_individuals?individuals.mutable_data():nullptr,
-        return_champions?champions.mutable_data():nullptr);
+        scheme, non_dw, 
+        {DW_SSFP.data(), DW_SSFP.size()}, {B1_map.data(), B1_map.size()},
+        {T1_map.data(), T1_map.size()}, {T2_map.data(), T2_map.size()},
+        population, generations, 
+        {champions_D.mutable_data(), champions_D.size()},
+        {champions_T1.mutable_data(), champions_T1.size()},
+        {champions_T2.mutable_data(), champions_T2.size()},
+        {individuals_D.mutable_data(), individuals_D.size()},
+        {individuals_T1.mutable_data(), individuals_T1.size()},
+        {individuals_T2.mutable_data(), individuals_T2.size()},
+        communicator);
     
     return pybind11::make_tuple(
-        return_individuals?individuals.cast<pybind11::object>():pybind11::none(),
-        return_champions?champions.cast<pybind11::object>():pybind11::none());
+        champions_D, champions_T1, champions_T2,
+        individuals_D, individuals_T1, individuals_T2);
 }
 
 PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
@@ -197,7 +198,7 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
     
     _dw_ssfp_fit.def(
         "fit", &fit_wrapper, 
-        "scheme"_a, "non_dw"_a, "DW_SSFP"_a, "T1_map"_a, "T2_map"_a, "B1_map"_a,
+        "scheme"_a, "non_dw"_a, "DW_SSFP"_a, "B1_map"_a, "T1_map"_a, "T2_map"_a,
         "communicator"_a, "population"_a=100, "generations"_a=100,
         "return_individuals"_a=true, "return_champions"_a=true);
 }

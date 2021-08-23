@@ -77,6 +77,24 @@ Problem
     return D;
 }
 
+sycomore::Quantity
+Problem
+::get_T1(Vector const & dv) const
+{
+    // If T1 is a variable, it is the previous-to-last item if T2 is also a
+    // variable, otherwise the last one.
+    return sycomore::units::s*(
+        this->_T1 ? this->_T1.value() : dv[dv.size()-(this->_T2?1:2)]);
+}
+
+sycomore::Quantity
+Problem
+::get_T2(Vector const & dv) const
+{
+    // If T2 is a variable, it is always the last item.
+    return sycomore::units::s*(this->_T2 ? this->_T2.value(): dv.back());
+}
+
 pagmo::vector_double
 Problem
 ::fitness(Vector const & scaled_dv) const
@@ -85,12 +103,8 @@ Problem
     
     auto const true_dv = this->get_true_dv(scaled_dv);
     auto const D = this->get_diffusion_tensor(true_dv);
-    // If T1 is a variable, it is the previous-to-last item if T2 is also a
-    // variable, otherwise the last one.
-    auto const T1 = s*(
-        this->_T1 ? this->_T1.value() : true_dv[true_dv.size()-(this->_T2?1:2)]);
-    // If T2 is a variable, it is always the last item.
-    auto const T2 = s*(this->_T2 ? this->_T2.value(): true_dv.back());
+    auto const T1 = this->get_T1(true_dv);
+    auto const T2 = this->get_T2(true_dv);
     
     auto const & non_dw_acquisition = this->_scheme[this->_non_dw_index];
     auto const non_dw_signal = this->_signals[this->_non_dw_index];

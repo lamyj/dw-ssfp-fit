@@ -43,6 +43,12 @@ public:
     sycomore::Array<sycomore::Quantity> 
     get_diffusion_tensor(Vector const & dv) const;
     
+    /// @brief Extract the T1 value from the decision vector or the Problem.
+    sycomore::Quantity get_T1(Vector const & dv) const;
+    
+    /// @brief Extract the T2 value from the decision vector or the Problem.
+    sycomore::Quantity get_T2(Vector const & dv) const;
+    
     /**
      * @brief Evaluate the fitness of a decision vector with respect to the
      * acquired and simulated signals.
