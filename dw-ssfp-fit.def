@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: debian:buster
+From: debian:bullseye
 
 %setup
   mkdir ${SINGULARITY_ROOTFS}/dw_ssfp_fit
