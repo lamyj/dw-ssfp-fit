@@ -73,8 +73,8 @@ def main():
             get_subset_path(arguments.D),
             *[get_subset_path(arguments, f"{x}_map") for x in arguments.outputs]]
         
+        subprocess.check_call([
             "mpirun",
-            "singularity", "exec", arguments.image,
             "python3", "fit.py", arguments.name,
             "-r", str(arguments.reference),
             "-p", str(arguments.population), "-g", str(arguments.generations),
