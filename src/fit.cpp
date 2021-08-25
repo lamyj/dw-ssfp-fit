@@ -101,7 +101,7 @@ void fit(
 {
     bool const fit_T1 = T1_map.empty();
     bool const fit_T2 = T2_map.empty();
-    bool const return_individuals = !champions_D.empty();
+    bool const return_individuals = !individuals_D.empty();
     
     for(int index=0; index != B1_map.size(); ++index)
     {

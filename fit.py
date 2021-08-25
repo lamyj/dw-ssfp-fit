@@ -14,83 +14,72 @@ import dw_ssfp_fit
 
 def main():
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        description="Fit the diffusion tensor, and optionally the T1 and T2 "
+            "from DW-SSFP data")
     
-    parser.add_argument("scheme", help="Path to the acquisition scheme")
-    parser.add_argument("DW_SSFP", help="Path to the DW-SSFP image")
-    parser.add_argument(
-        "T1_map", help="Path to the T1 map image, must be in seconds")
-    parser.add_argument(
-        "T2_map", help="Path to the T2 map image, must be in seconds")
-    parser.add_argument("B1_map", help="Path to the relative B1 map image")
-    parser.add_argument("mask", help="Path to the mask image")
-    parser.add_argument("D", help="Path to the output diffusion tensor image")
-    
-    parser.add_argument(
-        "--reference", "-r", type=int, default=0,
-        help="Number of non-diffusion-weighted (or low-diffusion-weighted) "
-            "acquisition")
-    parser.add_argument(
-        "--population", "-p", type=int, default=10,
-        help="Number of individuals")
-    parser.add_argument(
-        "--generations", "-g", type=int, default=1,
-        help="Number of generations")
+    dw_ssfp_fit.add_parser_commands(parser)
     arguments = parser.parse_args()
     
     communicator = MPI.COMM_WORLD
     
-    scheme, DW_SSFP, T1_map, T2_map, B1_map, mask = load(
-        communicator, arguments.scheme, arguments.DW_SSFP,
-        arguments.T1_map, arguments.T2_map, arguments.B1_map,
-        arguments.mask)
-    D = fit(
+    scheme, DW_SSFP, B1_map, mask, T1_map, T2_map = load(
+        communicator, arguments.scheme,
+        arguments.DW_SSFP, arguments.B1_map, arguments.mask,
+        arguments.T1_map if "T1" in arguments.inputs else None, 
+        arguments.T2_map if "T2" in arguments.inputs else None)
+    
+    D, T1, T2 = fit(
         communicator, scheme, arguments.reference,
-        DW_SSFP, T1_map, T2_map, B1_map, mask,
+        DW_SSFP, B1_map, mask, T1_map, T2_map, B1_map, mask,
         arguments.population, arguments.generations)
     if communicator.rank == 0:
-        save(communicator, D, DW_SSFP.affine, arguments.D)
+        affine = DW_SSFP.affine
+        save_D(communicator, D, affine, arguments.D)
+        if "T1" in arguments.outputs:
+            nibabel.save(nibabel.Nifti1Image(T1, affine), arguments.T1_map)
+        if "T2" in arguments.outputs:
+            nibabel.save(nibabel.Nifti1Image(T2, affine), arguments.T2_map)
     
-def load(communicator, scheme, DW_SSFP, T1_map, T2_map, B1_map, mask):
+def load(communicator, scheme, DW_SSFP, B1_map, mask, T1_map, T2_map):
     # Load the scheme on all ranks to avoid synchronizing a data structure
-    with open(str(scheme)) as fd:
+    with open(scheme) as fd:
         scheme = [dw_ssfp_fit.Acquisition(**x) for x in json.load(fd)]
     
     # Load the images only on rank 0 as blocks are dispatched to other rank
     # during fit.
     if communicator.rank == 0:
-        DW_SSFP = nibabel.load(str(DW_SSFP))
-        T1_map = nibabel.load(str(T1_map))
-        T2_map = nibabel.load(str(T2_map))
-        B1_map = nibabel.load(str(B1_map))
-        
+        DW_SSFP = nibabel.load(DW_SSFP)
+        B1_map = nibabel.load(B1_map)
         mask = nibabel.load(mask)
+        
+        T1_map = nibabel.load(T1_map) if T1_map is not None else None
+        T2_map = nibabel.load(T2_map) if T2_map is not None else None
+        
         # Update mask to discard invalid T1, T2, B1 values
-        ROI = (
-            (mask.get_fdata() != 0)
-            & (T1_map.get_fdata() > 0) & (T1_map.get_fdata() < 2) 
-            & (T2_map.get_fdata() > 0) & (T2_map.get_fdata() < 1) 
-            & (B1_map.get_fdata() > 0.5) & (B1_map.get_fdata() < 1.5))
+        ROI = dw_ssfp_fit.get_combined_mask(
+            B1_map.get_fdata(), numpy.asarray(mask.dataobj),
+            T1_map.get_fdata() if T1_map is not None else None,
+            T2_map.get_fdata() if T2_map is not None else None)
         mask = nibabel.Nifti1Image(ROI.astype(int), mask.affine)
     else:
         DW_SSFP = numpy.array(())
-        T1_map = numpy.array(())
-        T2_map = numpy.array(())
         B1_map = numpy.array(())
         mask = numpy.array(())
-    
-    return scheme, DW_SSFP, T1_map, T2_map, B1_map, mask
+        T1_map = numpy.array(()) if T1_map is not None else None
+        T2_map = numpy.array(()) if T2_map is not None else None
+        
+    return scheme, DW_SSFP, B1_map, mask, T1_map, T2_map
 
 def fit(
         communicator, scheme, non_dw, 
-        DW_SSFP, T1_map, T2_map, B1_map, mask,
+        DW_SSFP, B1_map, mask, T1_map, T2_map,
         population, generations):
-    _, D = dw_ssfp_fit.fit(
-        scheme, non_dw, DW_SSFP, T1_map, T2_map, B1_map, mask,
-        communicator, population, generations, False, True)
-    return D
+    D, T1, T2, _, _, _ = dw_ssfp_fit.fit(
+        scheme, non_dw, DW_SSFP, B1_map, mask, T1_map, T2_map,
+        communicator, population, generations)
+    return D, T1, T2
 
-def save(communicator, D, affine, path):
+def save_D(communicator, D, affine, path):
     """ Save a diffusion tensor map to an MRtrix-compatible format.
     """
     
@@ -103,7 +92,7 @@ def save(communicator, D, affine, path):
     scale = (m**2/s).convert_to(mm**2/s)
     D = numpy.asfortranarray(
         1e6*numpy.stack([D[...,x[0], x[1]] for x in volumes], axis=-1))
-    nibabel.save(nibabel.Nifti1Image(D, affine), str(path))
+    nibabel.save(nibabel.Nifti1Image(D, affine), path)
 
 if __name__ == "__main__":
     sys.exit(main())

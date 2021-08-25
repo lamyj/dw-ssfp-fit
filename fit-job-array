@@ -9,35 +9,21 @@ import tempfile
 
 import nibabel
 import numpy
+from sycomore.units import *
+
+import dw_ssfp_fit
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Split the fit across chunks defined by the mask and "
-            "acceptable values of T1, T2, and B1. This script must be run "
-            "through a Slurm array of tasks.")
-    
-    parser.add_argument("image", help="Path to the singularity image")
-    parser.add_argument("scheme", help="Path to the acquisition scheme")
-    parser.add_argument("DW_SSFP", help="Path to the DW-SSFP image")
-    parser.add_argument(
-        "T1_map", help="Path to the T1 map image, must be in seconds")
-    parser.add_argument(
-        "T2_map", help="Path to the T2 map image, must be in seconds")
-    parser.add_argument("B1_map", help="Path to the relative B1 map image")
-    parser.add_argument("mask", help="Path to the mask image")
-    parser.add_argument("chunks_count", type=int, help="Number of chunks")
-    parser.add_argument("D", help="Path to the output diffusion tensor image")
+        description="Fit the diffusion tensor, and optionally the T1 and T2 "
+            "from DW-SSFP data, after chunking the input data. This script "
+            "must be run through a Slurm array of tasks.")
     
     parser.add_argument(
-        "--reference", "-r", type=int, default=0,
-        help="Number of non-diffusion-weighted (or low-diffusion-weighted) "
-            "acquisition")
-    parser.add_argument(
-        "--population", "-p", type=int, default=10,
-        help="Number of individuals")
-    parser.add_argument(
-        "--generations", "-g", type=int, default=1,
-        help="Number of generations")
+        "chunks_count", type=int,
+        help="Number of chunks to split the data into")
+    
+    dw_ssfp_fit.add_parser_commands(parser)
     arguments = parser.parse_args()
     
     task_count = arguments.chunks_count
@@ -46,16 +32,18 @@ def main():
     print("Task {}/{} on {}".format(task_id, task_count, socket.gethostname()))
     
     with tempfile.TemporaryDirectory() as directory:
-        T1_map = nibabel.load(arguments.T1_map)
-        T2_map = nibabel.load(arguments.T2_map)
         B1_map = nibabel.load(arguments.B1_map)
-        mask = nibabel.load(arguments.mask)
+        affine = B1_map.affine
+        B1_map = B1_map.get_fdata()
+        mask = numpy.asarray(nibabel.load(arguments.mask).dataobj)
+        T1_map = (
+            nibabel.load(arguments.T1_map).get_fdata() 
+            if "T1" in arguments.inputs else None)
+        T2_map = (
+            nibabel.load(arguments.T2_map).get_fdata()
+            if "T2" in arguments.inputs else None)
         
-        mask_data = (
-            (numpy.asarray(mask.dataobj) != 0)
-            & (T1_map.get_fdata() > 0) & (T1_map.get_fdata() < 2) 
-            & (T2_map.get_fdata() > 0) & (T2_map.get_fdata() < 1) 
-            & (B1_map.get_fdata() > 0.5) & (B1_map.get_fdata() < 1.5))
+        mask_data = dw_ssfp_fit.get_combined_mask(B1_map, mask, T1_map, T1_map)
         
         mask_indices = numpy.array(mask_data.nonzero())
         sub_mask_size, remainder = divmod(mask_indices.shape[1], task_count)
@@ -73,26 +61,27 @@ def main():
         
         sub_mask_path = os.path.join(
             directory, "mask_{}.nii.gz".format(task_id))
-        nibabel.save(
-            nibabel.Nifti1Image(sub_mask_data, mask.affine), sub_mask_path)
+        nibabel.save(nibabel.Nifti1Image(sub_mask_data, affine), sub_mask_path)
         
-        sub_D_path = os.path.join(
-            os.path.dirname(arguments.D),
-            "{}_{}.{}".format(
-                os.path.basename(arguments.D).split(".", 1)[0],
-                task_id,
-                os.path.basename(arguments.D).split(".", 1)[1]))
+        def get_subset_path(path):
+            stem, leaf = os.path.basename(path).split(".", 1)
+            return os.path.join(
+                os.path.dirname(arguments.D),
+                "{}_{}.{}".format(stem, task_id, leaf))
         
-        subprocess.check_call([
+        output_subsets = [
+            get_subset_path(arguments.D),
+            *[get_subset_path(arguments, f"{x}_map") for x in arguments.outputs]]
+        
             "mpirun",
             "singularity", "exec", arguments.image,
-            "python3", "fit.py", 
+            "python3", "fit.py", arguments.name,
             "-r", str(arguments.reference),
             "-p", str(arguments.population), "-g", str(arguments.generations),
-            *[
-                getattr(arguments, x) for x in [
-                    "scheme", "DW_SSFP", "T1_map", "T2_map", "B1_map"]],
-            sub_mask_path, sub_D_path
+            *[getattr(arguments, x) for x in ["scheme", "DW_SSFP", "B1_map"]],
+            sub_mask_path, 
+            *[getattr(arguments, f"{x}_map") for x in arguments.inputs],
+            *output_subsets
         ])
 
 if __name__ == "__main__":

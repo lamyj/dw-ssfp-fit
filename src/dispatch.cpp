@@ -50,7 +50,7 @@ compute_chunks(
 
 std::span<double> scatter_blocks(
     boost::mpi::communicator const & communicator,
-    std::span<double> const & source, unsigned int block_size)
+    std::span<double const> const & source, unsigned int block_size)
 {
     if(source.empty())
     {
@@ -85,7 +85,7 @@ std::span<double> scatter_blocks(
 
 void gather_blocks(
     boost::mpi::communicator const & communicator,
-    std::span<double> const & source, std::span<double> & destination,
+    std::span<double const> const & source, std::span<double> & destination,
     unsigned int block_size)
 {
     std::vector<int> subset_sizes(communicator.size());

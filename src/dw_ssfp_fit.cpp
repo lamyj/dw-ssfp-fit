@@ -36,19 +36,39 @@ public:
 
 } }
 
+namespace std
+{
+template<typename T, int ExtraFlags>
+bool empty(pybind11::array_t<T, ExtraFlags> const & array)
+{
+    return array.size() == 0;
+}
+}
+
 pybind11::tuple
 fit_wrapper(
     std::vector<Acquisition> const & scheme, unsigned int non_dw, 
     pybind11::array_t<double> DW_SSFP, pybind11::array_t<double> B1_map,
-    pybind11::array_t<double> T1_map, pybind11::array_t<double> T2_map,
+    pybind11::object T1_map_, pybind11::object T2_map_,
     boost::mpi::communicator communicator,
-    unsigned int population, unsigned int generations,
-    bool return_individuals, bool return_champions)
+    unsigned int population, unsigned int generations, bool return_individuals)
 {
     using namespace std::string_literals;
     
     pybind11::array_t<double> champions_D, champions_T1, champions_T2;
     pybind11::array_t<double> individuals_D, individuals_T1, individuals_T2;
+    
+    pybind11::array_t<double> T1_map;
+    if(!T1_map_.is(pybind11::none()))
+    {
+        T1_map = T1_map_.cast<pybind11::array_t<double>>();
+    }
+    
+    pybind11::array_t<double> T2_map;
+    if(!T2_map_.is(pybind11::none()))
+    {
+        T2_map = T2_map_.cast<pybind11::array_t<double>>();
+    }
     
     if(communicator.rank() == 0)
     {
@@ -60,12 +80,12 @@ fit_wrapper(
         champions_shape_D.push_back(3);
         champions_D = pybind11::array_t<double>(champions_shape_D);
         
-        if(T1_map.size() == 0)
+        if(std::empty(T1_map))
         {
             champions_T1 = pybind11::array_t<double>(champions_shape);
         }
         
-        if(T2_map.size() == 0)
+        if(std::empty(T2_map))
         {
             champions_T2 = pybind11::array_t<double>(champions_shape);
         }
@@ -80,12 +100,12 @@ fit_wrapper(
             individuals_shape_D.push_back(3);
             individuals_D = pybind11::array_t<double>(individuals_shape_D);
             
-            if(T1_map.size() == 0)
+            if(std::empty(T1_map))
             {
                 individuals_T1 = pybind11::array_t<double>(individuals_shape);
             }
             
-            if(T2_map.size() == 0)
+            if(std::empty(T2_map))
             {
                 individuals_T2 = pybind11::array_t<double>(individuals_shape);
             }
@@ -105,9 +125,13 @@ fit_wrapper(
         {individuals_T2.mutable_data(), individuals_T2.size()},
         communicator);
     
+    auto none_if_empty = [](auto & x) { 
+        return !std::empty(x)?x.template cast<pybind11::object>():pybind11::none(); };
+    
     return pybind11::make_tuple(
-        champions_D, champions_T1, champions_T2,
-        individuals_D, individuals_T1, individuals_T2);
+        champions_D, none_if_empty(champions_T1), none_if_empty(champions_T2),
+        none_if_empty(individuals_D), 
+            none_if_empty(individuals_T1), none_if_empty(individuals_T2));
 }
 
 PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
@@ -200,5 +224,5 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
         "fit", &fit_wrapper, 
         "scheme"_a, "non_dw"_a, "DW_SSFP"_a, "B1_map"_a, "T1_map"_a, "T2_map"_a,
         "communicator"_a, "population"_a=100, "generations"_a=100,
-        "return_individuals"_a=true, "return_champions"_a=true);
+        "return_individuals"_a=false);
 }
