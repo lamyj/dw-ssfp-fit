@@ -11,13 +11,14 @@ import numpy
 from sycomore.units import *
 
 import dw_ssfp_fit
+import helpers
 
 def main():
     parser = argparse.ArgumentParser(
         description="Fit the diffusion tensor, and optionally the T1 and T2 "
             "from DW-SSFP data")
     
-    dw_ssfp_fit.add_parser_commands(parser)
+    helpers.add_parser_commands(parser)
     arguments = parser.parse_args()
     
     communicator = MPI.COMM_WORLD
@@ -56,7 +57,7 @@ def load(communicator, scheme, DW_SSFP, B1_map, mask, T1_map, T2_map):
         T2_map = nibabel.load(T2_map) if T2_map is not None else None
         
         # Update mask to discard invalid T1, T2, B1 values
-        ROI = dw_ssfp_fit.get_combined_mask(
+        ROI = helpers.get_combined_mask(
             B1_map.get_fdata(), numpy.asarray(mask.dataobj),
             T1_map.get_fdata() if T1_map is not None else None,
             T2_map.get_fdata() if T2_map is not None else None)
