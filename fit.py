@@ -31,7 +31,7 @@ def main():
     
     D, T1, T2 = fit(
         communicator, scheme, arguments.reference,
-        DW_SSFP, B1_map, mask, T1_map, T2_map, B1_map, mask,
+        DW_SSFP, B1_map, mask, T1_map, T2_map,
         arguments.population, arguments.generations)
     if communicator.rank == 0:
         affine = DW_SSFP.affine
