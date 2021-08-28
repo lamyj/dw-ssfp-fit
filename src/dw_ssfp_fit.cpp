@@ -7,12 +7,15 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <sycomore/Array.h>
+#include <sycomore/Quantity.h>
 
 #include "Acquisition.h"
 #include "benchmark.h"
 #include "diffusion_tensor.h"
 #include "fit.h"
 #include "models.h"
+#include "TimeIntervals.h"
 
 namespace pybind11 { namespace detail {
 
@@ -144,6 +147,8 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
         throw pybind11::error_already_set();
     }
     
+    pybind11::module::import("sycomore");
+    
     pybind11::class_<Acquisition>(_dw_ssfp_fit, "Acquisition")
         .def(pybind11::init<
                 sycomore::Quantity, sycomore::Quantity, sycomore::Quantity, 
@@ -175,14 +180,17 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
         .def_readwrite("shape", &Acquisition::shape)
         .def_readwrite("FOV", &Acquisition::FOV)
         .def_readwrite("train_length", &Acquisition::train_length)
-        .def_readwrite("G_max", &Acquisition::G_max)
-        .def_readwrite("diffusion", &Acquisition::diffusion)
-        .def_readwrite("idle", &Acquisition::idle)
-        .def_readwrite("readout_preparation", &Acquisition::readout_preparation)
-        .def_readwrite("half_readout", &Acquisition::half_readout)
-        .def_readwrite("phase_blip", &Acquisition::phase_blip)
-        .def_readwrite("readout_rewind", &Acquisition::readout_rewind)
-        .def_readwrite("end_of_TR", &Acquisition::end_of_TR);
+        .def_readwrite("G_max", &Acquisition::G_max);
+    
+    pybind11::class_<TimeIntervals>(_dw_ssfp_fit, "TimeIntervals")
+        .def(pybind11::init<Acquisition const &, sycomore::Quantity const &>())
+        .def_readwrite("diffusion", &TimeIntervals::diffusion)
+        .def_readwrite("idle", &TimeIntervals::idle)
+        .def_readwrite("readout_preparation", &TimeIntervals::readout_preparation)
+        .def_readwrite("half_readout", &TimeIntervals::half_readout)
+        .def_readwrite("phase_blip", &TimeIntervals::phase_blip)
+        .def_readwrite("readout_rewind", &TimeIntervals::readout_rewind)
+        .def_readwrite("end_of_TR", &TimeIntervals::end_of_TR);
     
     _dw_ssfp_fit.def("freed", &freed, "species"_a, "acquisition"_a, "B1"_a);
     _dw_ssfp_fit.def(

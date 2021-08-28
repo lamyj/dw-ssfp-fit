@@ -1,5 +1,6 @@
 #include "models.h"
 
+#include <algorithm>
 #include <cmath>
 
 #include <Eigen/Core>
@@ -9,6 +10,7 @@
 #include <sycomore/sycomore.h>
 
 #include "Acquisition.h"
+#include "TimeIntervals.h"
 
 double freed(
     sycomore::Species const & species,
@@ -97,32 +99,33 @@ template<typename Model, typename DiffusionGradient>
 void single_repetition(
     Model & model, Acquisition const & acquisition,
     DiffusionGradient const & diffusion_gradient, double B1,
+    TimeIntervals const & time_intervals,
     std::vector<double> & signal)
 {
     auto const remainder = acquisition.train_length%2;
     
     model.apply_pulse(acquisition.alpha*B1);
         
-    model.apply_time_interval(acquisition.idle);
+    model.apply_time_interval(time_intervals.idle);
     model.apply_time_interval(
         acquisition.tau_diffusion, diffusion_gradient);
-    model.apply_time_interval(acquisition.idle);
+    model.apply_time_interval(time_intervals.idle);
     
     int polarity = +1;
     
-    model.apply_time_interval(acquisition.readout_preparation);
+    model.apply_time_interval(time_intervals.readout_preparation);
     
     int const half_lines = (acquisition.train_length-remainder)/2;
     for(int line=0; line!=half_lines; ++line)
     {
-        model.apply_time_interval(acquisition.half_readout.at(polarity));
-        model.apply_time_interval(acquisition.half_readout.at(polarity));
-        model.apply_time_interval(acquisition.phase_blip);
+        model.apply_time_interval(time_intervals.half_readout.at(polarity));
+        model.apply_time_interval(time_intervals.half_readout.at(polarity));
+        model.apply_time_interval(time_intervals.phase_blip);
         polarity *= -1;
     }
     if(remainder != 0)
     {
-        model.apply_time_interval(acquisition.half_readout.at(polarity));
+        model.apply_time_interval(time_intervals.half_readout.at(polarity));
     }
     
     // FIXME is this correct for an even EPI factor?
@@ -130,26 +133,26 @@ void single_repetition(
     
     if(remainder != 0)
     {
-        model.apply_time_interval(acquisition.half_readout.at(polarity));
+        model.apply_time_interval(time_intervals.half_readout.at(polarity));
         polarity *= -1;
         if(acquisition.train_length > 1)
         {
-            model.apply_time_interval(acquisition.phase_blip);
+            model.apply_time_interval(time_intervals.phase_blip);
         }
     }
     for(int line=0; line!=half_lines; ++line)
     {
-        model.apply_time_interval(acquisition.half_readout.at(polarity));
-        model.apply_time_interval(acquisition.half_readout.at(polarity));
+        model.apply_time_interval(time_intervals.half_readout.at(polarity));
+        model.apply_time_interval(time_intervals.half_readout.at(polarity));
         if(line != half_lines-1)
         {
-            model.apply_time_interval(acquisition.phase_blip);
+            model.apply_time_interval(time_intervals.phase_blip);
         }
         polarity *= -1;
     }
-    model.apply_time_interval(acquisition.readout_rewind);
+    model.apply_time_interval(time_intervals.readout_rewind);
     
-    model.apply_time_interval(acquisition.end_of_TR);
+    model.apply_time_interval(time_intervals.end_of_TR);
 }
 
 double epg_discrete_1d(
@@ -157,6 +160,9 @@ double epg_discrete_1d(
     Acquisition const & acquisition, double B1)
 {
     using namespace sycomore::units;
+    
+    auto const bin_width = 1e-3 * rad/m;
+    TimeIntervals const time_intervals(acquisition, bin_width);
     
     // WARNING: this considers a *single* ADC, while the ADC will change with
     // the direction of the applied gradient.
@@ -177,14 +183,15 @@ double epg_discrete_1d(
     std::vector<double> signal;
     signal.reserve(repetitions);
     
-    sycomore::epg::Discrete model(isotropic_species, {0,0,1}, 1e-6*rad/m);
+    sycomore::epg::Discrete model(isotropic_species, {0,0,1}, bin_width);
     model.threshold = 1e-4;
     
     bool stable=false;
     while(!stable && signal.size() < repetitions)
     {
         single_repetition(
-            model, acquisition, acquisition.G_diffusion, B1, signal);
+            model, acquisition, acquisition.G_diffusion, B1, time_intervals,
+            signal);
         
         if(signal.size() > 20)
         {
@@ -213,21 +220,22 @@ double epg_discrete_3d(
     Acquisition const & acquisition, double B1)
 {
     using namespace sycomore::units;
-
-    bool stable=false;
     
+    auto const bin_width = 1e-3 * rad/m;
+    TimeIntervals const time_intervals(acquisition, bin_width);
+
     int const repetitions = 5*species.get_T1()/acquisition.TR;
 
     std::vector<double> signal;
     signal.reserve(repetitions);
 
-    sycomore::epg::Discrete3D model(species, {0,0,1}, 1e-6*rad/m);
+    sycomore::epg::Discrete3D model(species, {0,0,1}, bin_width);
     
     while(signal.size() < repetitions)
     {
         single_repetition(
-            model, acquisition, acquisition.diffusion.get_gradient_amplitude(),
-            B1, signal);
+            model, acquisition, time_intervals.diffusion.get_gradient_amplitude(),
+            B1, time_intervals, signal);
     }
     
     auto const begin = signal.end()-20;

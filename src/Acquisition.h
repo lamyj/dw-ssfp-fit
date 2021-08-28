@@ -43,14 +43,6 @@ struct Acquisition
     /// @brief Maximum amplitude of the gradient system.
     sycomore::Quantity G_max;
     
-    sycomore::TimeInterval diffusion;
-    sycomore::TimeInterval idle;
-    sycomore::TimeInterval readout_preparation;
-    std::map<int, sycomore::TimeInterval> half_readout;
-    sycomore::TimeInterval phase_blip;
-    sycomore::TimeInterval readout_rewind;
-    sycomore::TimeInterval end_of_TR;
-    
     Acquisition(
         sycomore::Quantity alpha, 
         sycomore::Quantity G_diffusion, sycomore::Quantity tau_diffusion, 
@@ -71,8 +63,6 @@ struct Acquisition
     Acquisition(Acquisition &&) = default;
     Acquisition & operator=(Acquisition const &) = default;
     ~Acquisition() = default;
-    
-    void update_intervals();
 };
 
 #endif // _656a810d_dca3_413b_9208_d1924c3aea92
