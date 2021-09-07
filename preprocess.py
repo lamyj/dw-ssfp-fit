@@ -2,6 +2,7 @@ import json
 import pathlib
 
 import nibabel
+import pandas
 import qMRI_toolbox
 import spire
 import spire.ants
@@ -64,6 +65,9 @@ class DW_SSFP_denoised(spire.Task):
     targets = ["dw_ssfp_denoised.nii.gz"]
     actions = [["dwidenoise", "-force", *file_dep, *targets]]
 
+moco = qMRI_toolbox.moco.Ants(
+    DW_SSFP_denoised.targets[0], "dw_ssfp_denoised_moco")
+
 class DW_SSFP_metadata(spire.Task):
     def create_meta_data(image_paths, diffusion_vectors_paths, output):
         diffusion_vectors = []
@@ -105,3 +109,31 @@ class DW_SSFP_metadata(spire.Task):
     file_dep = DW_SSFP+diffusion_vectors
     targets = ["dw_ssfp.json"]
     actions = [(create_meta_data, (DW_SSFP, diffusion_vectors, targets[0]))]
+
+class DiffusionDirectionsMOCO(spire.Task):
+    def update_diffusion_directions(source, moco_params, destination):
+        with open(source) as fd:
+            scheme = json.load(fd)
+        moco_params = pandas.read_csv(moco_params)
+        
+        # antsMotionCorrDiffusionDirection assumes that the diffusion direction
+        # are in the voxel space while in our case they are in the physical
+        # space. The MOCOparam columns are used directly as the parameters of
+        # ITK transforms (rigid if 6 parameters, affine if 12). We are using an
+        # affine transform, but are not interested in the translation part since
+        # we are adjusting the directions. In case of an affine transform, the
+        # parameters are the row-major elements of the 3x3 matrix followed by
+        # the translation
+        # https://github.com/InsightSoftwareConsortium/ITK/blob/v5.2.1/Modules/Core/Transform/include/itkMatrixOffsetTransformBase.hxx#L561-L574
+        matrices = moco_params[
+                ["MOCOparam{}".format(x) for x in range(9)]
+            ].values.reshape(-1, 3, 3)
+        for acquisition, matrix in zip(scheme, matrices):
+            acquisition["direction"] = list(matrix @ acquisition["direction"])
+        
+        with open(destination, "w") as fd:
+            json.dump(scheme, fd)
+    
+    file_dep = [DW_SSFP_metadata.targets[0], moco.targets[1]]
+    targets = ["dw_ssfp_moco.json"]
+    actions = [(update_diffusion_directions, (*file_dep, *targets))]
