@@ -14,10 +14,13 @@ From: debian:bullseye
   add-apt-repository "deb https://iris-packages.s3.unistra.fr/apt $(lsb_release -cs) main"
   apt-get update
   apt-get install -y \
-    build-essential cmake libtbb-dev openssh-client libboost-mpi-dev \
-    libboost-test-dev libeigen3-dev libpython3-dev pybind11-dev \
-    python3 python3-dicomifier python3-distutils python3-matplotlib \
-    python3-mpi4py python3-nibabel python3-numpy
+    ants build-essential cmake cython3 git libtbb-dev openssh-client \
+    libboost-mpi-dev libboost-test-dev libeigen3-dev liblapack-dev \
+    libpython3-dev pybind11-dev python3 mrtrix3 python3-dicomifier \
+    python3-distutils python3-doit python3-h5py python3-jinja2 \
+    python3-matplotlib python3-mpi4py python3-nibabel python3-numpy \
+    python3-pandas python3-pip python3-pyinotify python3-scipy \
+    python3-setuptools python3-six python3-tqdm python3-wheel
   
   # Install Pagmo2 from source
   mkdir pagmo
@@ -46,6 +49,14 @@ From: debian:bullseye
   cmake  --build . --target install --parallel
   cd ../../
   rm -rf xsimd
+  
+  # Install qMRI_toolbox
+  git clone https://iris.icube.unistra.fr/gitlab/mondino/qmri_toolbox
+  cd qmri_toolbox
+  git checkout c89561a66f7872f1dd9c7bfb70aa08a198e649ad
+  # WARNING: pulls sycomore from pypi. Remove it since it is installed later.
+  python3 -m pip install .
+  python3 -m pip uninstall --yes sycomore
   
   # Install Sycomore from source
   mkdir sycomore
@@ -78,4 +89,5 @@ From: debian:bullseye
 
 %environment
   export LD_LIBRARY_PATH=/usr/local/lib
+  export PATH=/usr/lib/ants:$PATH
   export PYTHONPATH=/usr/local/lib/python3/dist-packages
