@@ -71,7 +71,9 @@ def main():
         
         output_subsets = [
             get_subset_path(arguments.D),
-            *[get_subset_path(arguments, f"{x}_map") for x in arguments.outputs]]
+            *[
+                get_subset_path(getattr(arguments, f"{x}_map"))
+                for x in arguments.outputs]]
         
         subprocess.check_call([
             "mpirun",
