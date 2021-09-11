@@ -16,6 +16,11 @@ TimeIntervals
 {
     using namespace sycomore::units;
     
+    if(acquisition.G_diffusion > acquisition.G_max)
+    {
+        throw std::runtime_error("G_max too low for diffusion");
+    }
+    
     auto const readout_duration = 1/acquisition.pixel_bandwidth;
     
     // Frequency-encoding gradient for the whole readout
@@ -60,7 +65,11 @@ TimeIntervals
             -frequency_encoding_area/2, 
             acquisition.train_length>1 ? -max_phase_encoding_area : 0*T/m*s,
             0*T/m*s}};
-    if(this->readout_preparation.get_gradient_amplitude()[1] > acquisition.G_max)
+    if(std::abs(this->readout_preparation.get_gradient_amplitude()[0]) > acquisition.G_max)
+    {
+        throw std::runtime_error("G_max too low for frequency encoding");
+    }
+    if(std::abs(this->readout_preparation.get_gradient_amplitude()[1]) > acquisition.G_max)
     {
         throw std::runtime_error("G_max too low for phase encoding");
     }
@@ -135,7 +144,7 @@ TimeIntervals
     if(this->idle.get_duration() < 0*s)
     {
         throw std::runtime_error(
-            "TE short low to accomodate diffusion and readout");
+            "TE too short to accomodate diffusion and readout");
     }
     
     this->diffusion = {
