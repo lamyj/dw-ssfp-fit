@@ -50,7 +50,7 @@ bool empty(pybind11::array_t<T, ExtraFlags> const & array)
 
 pybind11::tuple
 fit_wrapper(
-    std::vector<Acquisition> const & scheme, unsigned int non_dw, 
+    std::vector<Acquisition> const & scheme, unsigned int reference, 
     pybind11::array_t<double> DW_SSFP, pybind11::array_t<double> B1_map,
     pybind11::object T1_map_, pybind11::object T2_map_,
     boost::mpi::communicator communicator,
@@ -116,7 +116,7 @@ fit_wrapper(
     }
     
     fit(
-        scheme, non_dw, 
+        scheme, reference,
         {DW_SSFP.data(), DW_SSFP.size()}, {B1_map.data(), B1_map.size()},
         {T1_map.data(), T1_map.size()}, {T2_map.data(), T2_map.size()},
         population, generations, 
@@ -230,7 +230,8 @@ PYBIND11_MODULE(_dw_ssfp_fit, _dw_ssfp_fit)
     
     _dw_ssfp_fit.def(
         "fit", &fit_wrapper, 
-        "scheme"_a, "non_dw"_a, "DW_SSFP"_a, "B1_map"_a, "T1_map"_a, "T2_map"_a,
+        "scheme"_a, "reference"_a, "DW_SSFP"_a,
+        "B1_map"_a, "T1_map"_a, "T2_map"_a,
         "communicator"_a, "population"_a=100, "generations"_a=100,
         "return_individuals"_a=false);
 }

@@ -27,7 +27,7 @@ public:
     
     Problem() = default;
     Problem(
-        std::vector<Acquisition> const & scheme, std::size_t non_dw_index,
+        std::vector<Acquisition> const & scheme, unsigned int reference_index,
         std::vector<double> const & signals,
         std::optional<double> T1, std::optional<double> T2, double B1,
         Simulator simulator);
@@ -82,8 +82,8 @@ private:
     /// @brief Parameters of the set of acquisitions to fit.
     std::vector<Acquisition> _scheme;
     
-    /// @brief Index of the non-diffusion-weighted acquisition.
-    std::size_t _non_dw_index;
+    /// @brief Index of the reference acquisition.
+    unsigned int _reference_index;
     
     /// @brief Magnitude of the signal for each acquisition.
     std::vector<double> _signals;

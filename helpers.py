@@ -62,8 +62,8 @@ def add_parser_commands(parser):
         
         subparser.add_argument(
             "--reference", "-r", type=int, default=0,
-            help="Number of non-diffusion-weighted (or low-diffusion-weighted) "
-                "acquisition")
+            help="Index of reference, non-diffusion-weighted "
+                "(or low-diffusion-weighted) acquisition")
         subparser.add_argument(
             "--population", "-p", type=int, default=10,
             help="Number of individuals")

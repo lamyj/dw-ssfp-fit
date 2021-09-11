@@ -3,7 +3,7 @@ from ._dw_ssfp_fit import *
 unwrapped_fit = fit
 
 def wrapped_fit(
-        scheme, non_dw, 
+        scheme, reference, 
         DW_SSFP, B1_map, mask, T1_map, T2_map,
         communicator, population, generations,
         return_individuals=False):
@@ -36,7 +36,7 @@ def wrapped_fit(
         champions_D, champions_T1, champions_T2,
         individuals_D, individuals_T1, individuals_T2
     ) = unwrapped_fit(
-        scheme, non_dw, DW_SSFP, B1_map, T1_map, T2_map,
+        scheme, reference, DW_SSFP, B1_map, T1_map, T2_map,
         communicator, population, generations, return_individuals)
     
     def get_full_from_mask(source, mask):

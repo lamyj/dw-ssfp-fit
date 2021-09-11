@@ -16,26 +16,32 @@
 
 Problem
 ::Problem(
-    std::vector<Acquisition> const & scheme, std::size_t non_dw_index,
+    std::vector<Acquisition> const & scheme, unsigned int reference_index,
     std::vector<double> const & signals,
     std::optional<double> T1, std::optional<double> T2, double B1,
     Simulator simulator)
-: _scheme(scheme), _non_dw_index(non_dw_index), _signals(signals),
+: _scheme(scheme), _reference_index(reference_index), _signals(signals),
     _T1(T1), _T2(T2), _B1(B1), _simulator(simulator)
 {
     this->_true_bounds = {
         {0, 0, -M_PI, 1  *1e-12, 1  *1e-12, 1  *1e-12},
         {1, 1, +M_PI, 1e4*1e-12, 1e4*1e-12, 1e4*1e-12}};
     
+    // NOTE: the DV use R1, R2 and not T1, T2 for better contrast and hence
+    // better convergence
     if(!this->_T1)
     {
-        this->_true_bounds.first.push_back(2e-4);
-        this->_true_bounds.second.push_back(20);
+        // Min T1 of 2 ms -> max R1 of 0.5 Khz
+        this->_true_bounds.second.push_back(1./2e-3);
+        // Max T1 of 20 s -> min R1 of 0.05 Hz
+        this->_true_bounds.first.push_back(1./20);
     }
     if(!this->_T2)
     {
-        this->_true_bounds.first.push_back(1e-4);
-        this->_true_bounds.second.push_back(10);
+        // Min T2 of 1 ms -> max R2 of 1 Khz
+        this->_true_bounds.second.push_back(1./1e-3);
+        // Max T1 of 10 s -> min R2 of 0.05 Hz
+        this->_true_bounds.first.push_back(1./10);
     }
 }
 
@@ -81,34 +87,34 @@ sycomore::Quantity
 Problem
 ::get_T1(Vector const & dv) const
 {
+    // NOTE: DV stores R1, not T1
     // If T1 is a variable, it is the previous-to-last item if T2 is also a
     // variable, otherwise the last one.
     return sycomore::units::s*(
-        this->_T1 ? this->_T1.value() : dv[dv.size()-(this->_T2?1:2)]);
+        this->_T1 ? this->_T1.value() : 1./dv[dv.size()-(this->_T2?1:2)]);
 }
 
 sycomore::Quantity
 Problem
 ::get_T2(Vector const & dv) const
 {
+    // NOTE: DV stores R2, not T2
     // If T2 is a variable, it is always the last item.
-    return sycomore::units::s*(this->_T2 ? this->_T2.value(): dv.back());
+    return sycomore::units::s*(this->_T2 ? this->_T2.value(): 1./dv.back());
 }
 
 pagmo::vector_double
 Problem
 ::fitness(Vector const & scaled_dv) const
 {
-    using sycomore::units::s;
-    
     auto const true_dv = this->get_true_dv(scaled_dv);
     auto const D = this->get_diffusion_tensor(true_dv);
     auto const T1 = this->get_T1(true_dv);
     auto const T2 = this->get_T2(true_dv);
     
-    auto const & non_dw_acquisition = this->_scheme[this->_non_dw_index];
-    auto const non_dw_signal = this->_signals[this->_non_dw_index];
-    if(non_dw_signal == 0.)
+    auto const & reference_acquisition = this->_scheme[this->_reference_index];
+    auto const reference_signal = this->_signals[this->_reference_index];
+    if(reference_signal == 0.)
     {
         throw std::runtime_error("Non DW signal is null");
     }
@@ -118,29 +124,27 @@ Problem
     // NOTE: when e.g. T2 is too short, the threshold used in the simulator will
     // cause a return value of 0. Since we divide by this value, clamp it to a
     // non-0 value.
-    auto const simulated_signal_non_dw = std::max(
-        this->_simulator(species, non_dw_acquisition, this->_B1),
+    auto const simulated_signal_reference = std::max(
+        this->_simulator(species, reference_acquisition, this->_B1),
         1e-12);
     
     double residuals = 0;
     for(std::size_t i=0, end=this->_scheme.size(); i!=end; ++i)
     {
-        if(i == this->_non_dw_index)
+        if(i == this->_reference_index)
         {
             continue;
         }
         
         auto const & acquisition = this->_scheme[i];
-        auto measured_signal = this->_signals[i]/non_dw_signal;
+        auto measured_ratio = this->_signals[i]/reference_signal;
         
-        auto const simulated_signal_dw = this->_simulator(
+        auto const simulated_signal = this->_simulator(
             species, acquisition, this->_B1);
         
-        auto const simulated_signal = simulated_signal_dw/simulated_signal_non_dw;
+        auto const simulated_ratio = simulated_signal/simulated_signal_reference;
         
-        // The signal is normalized and < 1: don't use square norm, but absolute
-        // value to avoid too low residuals.
-        residuals += std::abs(simulated_signal-measured_signal);
+        residuals += std::abs(simulated_ratio-measured_ratio);
     }
     
     // Normalize by number of acquisition.

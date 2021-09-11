@@ -16,7 +16,7 @@
  * @warning result structures must be allocated by the caller.
  */
 void fit(
-    std::vector<Acquisition> const & scheme, unsigned int non_dw, 
+    std::vector<Acquisition> const & scheme, unsigned int reference,
     std::span<double const> DW_SSFP, std::span<double const> B1_map,
     std::span<double const> T1_map, std::span<double const> T2_map,
     unsigned int population, unsigned int generations,
@@ -33,7 +33,7 @@ void fit(
  * @warning result structures must be allocated by the caller.
  */
 void fit(
-    std::vector<Acquisition> const & scheme, unsigned int non_dw, 
+    std::vector<Acquisition> const & scheme, unsigned int reference,
     std::span<double const> DW_SSFP, std::span<double const> B1_map,
     std::span<double const> T1_map, std::span<double const> T2_map,
     unsigned int population, unsigned int generations,

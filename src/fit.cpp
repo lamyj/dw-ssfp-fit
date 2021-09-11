@@ -16,7 +16,7 @@
 #include "Problem.h"
 
 void fit(
-    std::vector<Acquisition> const & scheme, unsigned int non_dw, 
+    std::vector<Acquisition> const & scheme, unsigned int reference,
     std::span<double const> DW_SSFP, std::span<double const> B1_map,
     std::span<double const> T1_map, std::span<double const> T2_map,
     unsigned int population, unsigned int generations,
@@ -41,16 +41,16 @@ void fit(
     auto individuals_T1_subset = scatter_blocks(communicator, individuals_T1);
     auto individuals_T2_subset = scatter_blocks(communicator, individuals_T2);
     
-    bool const fit_T1 = T1_map_subset.empty();
-    bool const fit_T2 = T2_map_subset.empty();
-    bool const return_individuals = !individuals_D_subset.empty();
-    
     fit(
-        scheme, non_dw,
+        scheme, reference,
         DW_SSFP_subset, B1_map_subset, T1_map_subset, T2_map_subset,
         population, generations, 
         champions_D_subset, champions_T1_subset, champions_T2_subset,
         individuals_D_subset, individuals_T1_subset, individuals_T2_subset);
+    
+    bool const fit_T1 = T1_map_subset.empty();
+    bool const fit_T2 = T2_map_subset.empty();
+    bool const return_individuals = !individuals_D_subset.empty();
     
     // Gather champions (D is always present, T1 and T2 are optional).
     gather_blocks(communicator, champions_D_subset, champions_D, 9);
@@ -90,7 +90,7 @@ void fit(
 }
 
 void fit(
-    std::vector<Acquisition> const & scheme, unsigned int non_dw, 
+    std::vector<Acquisition> const & scheme, unsigned int reference,
     std::span<double const> DW_SSFP, std::span<double const> B1_map,
     std::span<double const> T1_map, std::span<double const> T2_map,
     unsigned int population, unsigned int generations,
@@ -109,7 +109,7 @@ void fit(
             DW_SSFP.data()+scheme.size()*index, 
             DW_SSFP.data()+scheme.size()*(index+1));
         Problem problem{
-            scheme, non_dw, signals, 
+            scheme, reference, signals, 
             fit_T1?std::optional<double>():T1_map[index],
             fit_T2?std::optional<double>():T2_map[index],
             B1_map[index], epg_discrete_1d};
