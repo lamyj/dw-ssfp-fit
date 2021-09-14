@@ -11,13 +11,21 @@ def main():
     parser.add_argument("inputs", metavar="input", nargs="+")
     parser.add_argument("output")
     arguments = parser.parse_args()
-    
-    images = [nibabel.load(x) for x in arguments.inputs]
-    if not all(x.shape == images[0].shape for x in images):
-        parser.error("Image shapes mismatch")
-    
-    D_data = numpy.sum([x.get_fdata() for x in images], axis=0)
-    nibabel.save(nibabel.Nifti1Image(D_data, images[0].affine), arguments.output)
+
+    image = nibabel.load(arguments.inputs[0])
+    shape, affine = image.shape, image.affine
+    merged = numpy.zeros(shape)
+
+    for path in arguments.inputs:
+        image = nibabel.load(path)
+        if image.shape != merged.shape:
+            parser.error("Image shapes mismatch")
+        if not numpy.allclose(image.affine, affine):
+            parser.error("Image transforms mismatch")
+        merged += image.get_fdata()
+        del image
+
+    nibabel.save(nibabel.Nifti1Image(merged, affine), arguments.output)
 
 if __name__ == "__main__":
     sys.exit(main())
