@@ -80,7 +80,8 @@ From: debian:bullseye
   mkdir build
   cd build
   cmake \
-    -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_CXX_FLAGS="-march=skylake-avx512 -Ofast" \
+    -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
+    -DCMAKE_CXX_FLAGS="-march=skylake-avx512 -Ofast" \
     -Dsycomore_DIR=/usr/local/lib/CMake/sycomore \
     ..
   cmake  --build . --target install --parallel

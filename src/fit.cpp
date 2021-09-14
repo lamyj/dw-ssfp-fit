@@ -5,6 +5,7 @@
 #include <span>
 #include <vector>
 
+#include <boost/mpi/collectives.hpp>
 #include <boost/mpi/communicator.hpp>
 #include <pagmo/algorithm.hpp>
 #include <pagmo/algorithms/de1220.hpp>
@@ -26,6 +27,17 @@ void fit(
         std::span<double> individuals_T2,
     boost::mpi::communicator communicator)
 {
+    bool fit_T1, fit_T2, return_individuals;
+    if(communicator.rank() == 0)
+    {
+        fit_T2 = T1_map.empty();
+        fit_T2 = T2_map.empty();
+        return_individuals = !individuals_D.empty();
+    }
+    boost::mpi::broadcast(communicator, fit_T1, 0);
+    boost::mpi::broadcast(communicator, fit_T2, 0);
+    boost::mpi::broadcast(communicator, return_individuals, 0);
+    
     // Dispatch the chunks to the workers. 
     auto const size = B1_map.size();
     auto DW_SSFP_subset = scatter_blocks(communicator, DW_SSFP, scheme.size());
@@ -47,10 +59,6 @@ void fit(
         population, generations, 
         champions_D_subset, champions_T1_subset, champions_T2_subset,
         individuals_D_subset, individuals_T1_subset, individuals_T2_subset);
-    
-    bool const fit_T1 = T1_map_subset.empty();
-    bool const fit_T2 = T2_map_subset.empty();
-    bool const return_individuals = !individuals_D_subset.empty();
     
     // Gather champions (D is always present, T1 and T2 are optional).
     gather_blocks(communicator, champions_D_subset, champions_D, 9);
